@@ -140,3 +140,37 @@ The Claude Code adapter treats the on-disk JSONL format as unstable: known telem
 Session lineage is explicit. Message-level `parentUuid` is not assumed to mean parent *session*; callers may provide a lineage map when reliable lineage information is available.
 
 The reference implementation is tested on Windows, macOS, and Linux. UTC reporting requires no external timezone data; other IANA timezones may require the `tzdata` package on platforms that do not provide an IANA timezone database.
+
+
+## Concise coaching reports
+
+The worker-facing report is intentionally smaller than the evidence behind it. It is designed for a quick scan, not as a scorecard.
+
+Surface limits:
+
+- up to 4 KPI cards;
+- up to 3 Keep items;
+- up to 3 Problem items;
+- **one Next Try**;
+- up to 3 trend notes;
+- environment-change markers when relevant.
+
+Detailed raw / deduplicated metrics and evidence remain available below the surface.
+
+Render a Report View Model as HTML:
+
+```bash
+agent-kpt render-report fixtures/report-v0alpha1/report-ja.json \
+  --format html \
+  -o report.html
+```
+
+Or use the accessible Markdown fallback:
+
+```bash
+agent-kpt render-report fixtures/report-v0alpha1/report-ja.json \
+  --format markdown \
+  -o report.md
+```
+
+Japanese wording may optionally be polished by an external writing skill such as [natural-japanese](https://github.com/coji/natural-japanese). Copy polish happens **after facts are fixed** and must not change KPI values, lineage counts, lifecycle states, evidence IDs, timestamps, or provenance. See [Japanese copy polish boundary](docs/japanese-copy-policy.md).
