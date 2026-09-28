@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Mapping
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -9,10 +9,15 @@ SCHEMA_VERSION = "agent-kpt.core/v0alpha1"
 
 
 def compute_metrics(adapter_result: Mapping[str, Any], *, report_timezone: str = "UTC") -> dict[str, Any]:
-    try:
-        zone = ZoneInfo(report_timezone)
-    except ZoneInfoNotFoundError as exc:
-        raise ValueError(f"unknown timezone: {report_timezone}") from exc
+    if report_timezone in {"UTC", "Etc/UTC", "GMT"}:
+        zone = timezone.utc
+    else:
+        try:
+            zone = ZoneInfo(report_timezone)
+        except ZoneInfoNotFoundError as exc:
+            raise ValueError(
+                f"unknown timezone: {report_timezone}; install tzdata on platforms without an IANA database"
+            ) from exc
 
     sessions = list(adapter_result.get("sessions", []))
     events = list(adapter_result.get("events", []))
