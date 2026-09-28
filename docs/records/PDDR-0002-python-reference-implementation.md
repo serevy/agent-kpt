@@ -4,7 +4,7 @@ title: Python reference implementation with language-neutral core
 decision_date: 2026-09-28
 recorded_date: 2026-09-28
 decision_status: accepted
-delivery_status: in-progress
+delivery_status: validated
 scope:
   - project
   - process
@@ -65,15 +65,16 @@ The reference implementation should prefer the standard library where practical 
 
 ## Delivery and validation
 
-In progress in the Issue #2 implementation branch.
+Validated in PR #8.
 
-Planned validation:
+Evidence:
 
-- synthetic Claude Code JSONL adapter fixture;
-- fail-soft unknown-record test;
-- privacy regression asserting raw prompt/tool/error content is not copied into normalized telemetry;
-- deterministic raw vs lineage-deduplicated metrics fixture;
-- CI on Windows, macOS, and Linux.
+- six unit/regression tests pass;
+- the synthetic Claude Code fixture reproduces the existing core golden metrics;
+- unknown record types fail soft with recoverable diagnostics;
+- raw prompt/assistant/tool/error content is excluded from normalized telemetry;
+- inherited duplicate model-call history is distinguished from new calls;
+- GitHub Actions passes on Ubuntu (Python 3.10 and 3.13), Windows (Python 3.11), and macOS (Python 3.11).
 
 ## Consequences
 
