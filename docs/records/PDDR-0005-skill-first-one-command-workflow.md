@@ -4,7 +4,7 @@ title: Skill-first one-command workflow
 decision_date: 2026-09-29
 recorded_date: 2026-09-29
 decision_status: accepted
-delivery_status: in-progress
+delivery_status: validated
 scope:
   - project
   - process
@@ -88,16 +88,18 @@ The repository owner approved continuing with this entrypoint on 2026-09-29.
 
 ## Delivery and validation
 
-In progress in Issue #12.
+Validated in PR #13.
 
-Planned evidence:
+Evidence:
 
-- realistic split-response / resumed-history adapter regression;
-- current-project transcript discovery fixture;
-- privacy-safe packet regression;
-- local ledger apply/status regression;
-- Skill/plugin manifest;
-- Windows / macOS / Linux CI.
+- realistic split-response / resumed-history adapter regression passes;
+- automatic lineage inference and current-project transcript discovery regressions pass;
+- child subagent transcripts are included without persisting raw prompt/tool content;
+- privacy-safe packet + local ledger apply/status round trip passes;
+- Skill, plugin manifest, and repo-local launcher are present;
+- the full suite passes with 19 tests;
+- GitHub Actions passes on Ubuntu (Python 3.10 and 3.13), Windows (Python 3.11), and macOS (Python 3.11);
+- PDDR validation passes.
 
 ## Consequences
 
