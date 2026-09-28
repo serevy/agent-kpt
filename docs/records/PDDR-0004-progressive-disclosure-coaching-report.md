@@ -4,7 +4,7 @@ title: Progressive disclosure coaching report
 decision_date: 2026-09-29
 recorded_date: 2026-09-29
 decision_status: accepted
-delivery_status: in-progress
+delivery_status: validated
 scope:
   - product
   - project
@@ -76,15 +76,22 @@ The repository owner approved this direction on 2026-09-29.
 
 ## Delivery and validation
 
-In progress in Issue #4.
+Validated in PR #10.
 
-Planned artifacts:
+Delivered artifacts:
 
 - Report View Model JSON Schema;
 - deterministic HTML and Markdown renderers;
 - Japanese concise-report fixture;
 - tests enforcing surface caps, one Next Try, scoring rejection, evidence references, drill-down, and environment markers;
 - documented Japanese copy-polish boundary.
+
+Validation evidence:
+
+- the full suite passes with 17 tests;
+- GitHub Actions passes on Ubuntu (Python 3.10 and 3.13), Windows (Python 3.11), and macOS (Python 3.11);
+- PDDR validation passes;
+- HTML keeps evidence collapsed by default while Markdown preserves a readable details section.
 
 ## Consequences
 
