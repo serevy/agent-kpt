@@ -4,7 +4,7 @@ title: Provider-neutral normalized event core
 decision_date: 2026-09-28
 recorded_date: 2026-09-28
 decision_status: accepted
-delivery_status: in-progress
+delivery_status: validated
 scope:
   - project
   - product
@@ -76,17 +76,19 @@ The repository owner accepted this contract on 2026-09-28, with the expectation 
 
 ## Delivery and validation
 
-In progress on the Issue #2 branch.
+Validated through the Issue #2 Python reference implementation.
 
-Current delivery artifacts:
+Delivery artifacts now include:
 
 - JSON Schemas for Session, Event, and AdapterResult;
 - a synthetic lineage fixture derived from baseline-v0;
-- expected raw vs deduplicated metrics;
-- a human-readable expected report;
-- a documented fail-soft adapter contract.
+- a Claude Code adapter behind the provider boundary;
+- deterministic raw vs lineage-deduplicated metrics;
+- fail-soft unknown-record handling;
+- privacy regression coverage that excludes raw prompt/tool/error content from normalized telemetry;
+- cross-platform tests on Ubuntu, Windows, and macOS.
 
-Validation at this stage is contract/fixture review plus PDDR validation. Executable adapter and metric-engine validation remain follow-up work.
+The executable reference implementation reproduces the accepted core golden metrics, including raw path-error observations = 2 and independent root-lineage incidents = 1.
 
 ## Consequences
 
