@@ -1,0 +1,90 @@
+{
+  "fixture_version": 1,
+  "note": "Synthetic data only. No real project, user, or employer data.",
+  "sessions": [
+    {
+      "session_id": "session-a",
+      "root_lineage_id": "root-a",
+      "summary": "Investigate intermittent avatar state bug",
+      "date": "2026-09-21",
+      "tokens": {
+        "input": 1200,
+        "output": 680,
+        "cache_create": 2200,
+        "cache_read": 51000,
+        "cache_create_5m": 400,
+        "cache_create_1h": 1800
+      },
+      "latency": {
+        "sample_count": 24,
+        "avg_sec": 7.2,
+        "slow_60s": 1,
+        "slow_120s": 0
+      },
+      "errors": [
+        {
+          "fingerprint": "path-quoting",
+          "message": "synthetic path quoting failure"
+        }
+      ],
+      "slash_commands": {
+        "review": 1
+      },
+      "skill_invocations": {
+        "advisor": 1
+      }
+    },
+    {
+      "session_id": "session-b",
+      "root_lineage_id": "root-b",
+      "summary": "Small known-location refactor",
+      "date": "2026-09-23",
+      "tokens": {
+        "input": 800,
+        "output": 420,
+        "cache_create": 900,
+        "cache_read": 39000,
+        "cache_create_5m": 100,
+        "cache_create_1h": 800
+      },
+      "latency": {
+        "sample_count": 15,
+        "avg_sec": 5.8,
+        "slow_60s": 0,
+        "slow_120s": 0
+      },
+      "errors": [],
+      "slash_commands": {},
+      "skill_invocations": {}
+    },
+    {
+      "session_id": "session-a-fork-1",
+      "root_lineage_id": "root-a",
+      "parent_session_id": "session-a",
+      "summary": "Parallel investigation branch",
+      "date": "2026-09-21",
+      "tokens": {
+        "input": 300,
+        "output": 150,
+        "cache_create": 600,
+        "cache_read": 14000,
+        "cache_create_5m": 300,
+        "cache_create_1h": 300
+      },
+      "latency": {
+        "sample_count": 8,
+        "avg_sec": 8.0,
+        "slow_60s": 0,
+        "slow_120s": 0
+      },
+      "errors": [
+        {
+          "fingerprint": "path-quoting",
+          "message": "synthetic repeated inherited-lineage failure"
+        }
+      ],
+      "slash_commands": {},
+      "skill_invocations": {}
+    }
+  ]
+}

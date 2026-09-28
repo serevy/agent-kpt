@@ -108,3 +108,11 @@ This repository uses [PDDR Kit](https://github.com/serevy/pddr-kit) to preserve 
 - Validate: `python .pddr/pddr.py validate --allow-empty`
 
 PDDR is not a task log. Create or update a record only when a durable decision is made; installation alone does not require a decision record.
+
+## Baseline
+
+The pre-OSS workflow is preserved as a sanitized behavioral reference before generalization begins.
+
+- [Baseline design](docs/baseline-v0.md)
+- [Synthetic fixtures](fixtures/baseline-v0/)
+- [Regression contract](fixtures/baseline-v0/regression-check.md)
