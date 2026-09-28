@@ -1,0 +1,17 @@
+{
+  "name": "agent-kpt",
+  "version": "0.1.0",
+  "description": "Concise evidence-backed KPT retrospectives for human-agent coding workflows.",
+  "author": {
+    "name": "serevy"
+  },
+  "repository": "https://github.com/serevy/agent-kpt",
+  "license": "MIT",
+  "keywords": [
+    "retrospective",
+    "kpt",
+    "coding-agent",
+    "claude-code",
+    "workflow"
+  ]
+}
