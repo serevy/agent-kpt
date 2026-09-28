@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/serevy/agent-kpt/main/schemas/v0alpha1/adapter-result.schema.json",
+  "title": "agent-kpt adapter result v0alpha1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "sessions", "events", "diagnostics"],
+  "properties": {
+    "schema_version": {
+      "const": "agent-kpt.core/v0alpha1"
+    },
+    "sessions": {
+      "type": "array",
+      "items": { "$ref": "session.schema.json" }
+    },
+    "events": {
+      "type": "array",
+      "items": { "$ref": "event.schema.json" }
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/diagnostic" }
+    }
+  },
+  "$defs": {
+    "diagnostic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["severity", "code", "message", "recoverable"],
+      "properties": {
+        "severity": {
+          "type": "string",
+          "enum": ["info", "warning", "error"]
+        },
+        "code": {
+          "type": "string",
+          "minLength": 1
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        },
+        "recoverable": {
+          "type": "boolean"
+        },
+        "source_index": {
+          "anyOf": [
+            { "type": "integer", "minimum": 0 },
+            { "type": "null" }
+          ],
+          "default": null
+        }
+      }
+    }
+  }
+}

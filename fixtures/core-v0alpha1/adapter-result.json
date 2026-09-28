@@ -1,0 +1,192 @@
+{
+  "schema_version": "agent-kpt.core/v0alpha1",
+  "sessions": [
+    {
+      "schema_version": "agent-kpt.core/v0alpha1",
+      "id": "session-a",
+      "root_lineage_id": "root-a",
+      "parent_session_id": null,
+      "provider": "synthetic",
+      "harness": {
+        "name": "claude-code-like",
+        "version": "fixture"
+      },
+      "model": {
+        "name": "model-standard",
+        "family": "synthetic"
+      },
+      "started_at": "2026-09-21T09:00:00Z",
+      "ended_at": "2026-09-21T09:30:00Z",
+      "environment": {
+        "os": "synthetic"
+      },
+      "provenance": {
+        "adapter": "synthetic-fixture",
+        "adapter_version": "v0alpha1",
+        "source": "fixtures/baseline-v0/session-metrics.json",
+        "source_id": "session-a"
+      }
+    },
+    {
+      "schema_version": "agent-kpt.core/v0alpha1",
+      "id": "session-b",
+      "root_lineage_id": "root-b",
+      "parent_session_id": null,
+      "provider": "synthetic",
+      "harness": {
+        "name": "claude-code-like",
+        "version": "fixture"
+      },
+      "model": {
+        "name": "model-standard",
+        "family": "synthetic"
+      },
+      "started_at": "2026-09-23T10:00:00Z",
+      "ended_at": "2026-09-23T10:20:00Z",
+      "environment": {
+        "os": "synthetic"
+      },
+      "provenance": {
+        "adapter": "synthetic-fixture",
+        "adapter_version": "v0alpha1",
+        "source": "fixtures/baseline-v0/session-metrics.json",
+        "source_id": "session-b"
+      }
+    },
+    {
+      "schema_version": "agent-kpt.core/v0alpha1",
+      "id": "session-a-fork-1",
+      "root_lineage_id": "root-a",
+      "parent_session_id": "session-a",
+      "provider": "synthetic",
+      "harness": {
+        "name": "claude-code-like",
+        "version": "fixture"
+      },
+      "model": {
+        "name": "model-standard",
+        "family": "synthetic"
+      },
+      "started_at": "2026-09-21T09:10:00Z",
+      "ended_at": "2026-09-21T09:25:00Z",
+      "environment": {
+        "os": "synthetic"
+      },
+      "provenance": {
+        "adapter": "synthetic-fixture",
+        "adapter_version": "v0alpha1",
+        "source": "fixtures/baseline-v0/session-metrics.json",
+        "source_id": "session-a-fork-1"
+      }
+    }
+  ],
+  "events": [
+    {
+      "schema_version": "agent-kpt.core/v0alpha1",
+      "id": "event-error-a",
+      "session_id": "session-a",
+      "timestamp": "2026-09-21T09:05:00Z",
+      "type": "error",
+      "history_role": "observed",
+      "fingerprint": "error:path-quoting",
+      "source_event_id": null,
+      "payload": {
+        "message": "synthetic path quoting failure"
+      },
+      "provenance": {
+        "adapter": "synthetic-fixture",
+        "adapter_version": "v0alpha1",
+        "source": "fixtures/baseline-v0/session-metrics.json",
+        "source_index": 0
+      }
+    },
+    {
+      "schema_version": "agent-kpt.core/v0alpha1",
+      "id": "event-call-a",
+      "session_id": "session-a",
+      "timestamp": "2026-09-21T09:06:00Z",
+      "type": "model.call",
+      "history_role": "observed",
+      "fingerprint": null,
+      "source_event_id": null,
+      "payload": {
+        "input_tokens": 1200,
+        "output_tokens": 680
+      },
+      "provenance": {
+        "adapter": "synthetic-fixture",
+        "adapter_version": "v0alpha1",
+        "source": "synthetic-transcript-a",
+        "source_index": 1
+      }
+    },
+    {
+      "schema_version": "agent-kpt.core/v0alpha1",
+      "id": "event-error-a-fork",
+      "session_id": "session-a-fork-1",
+      "timestamp": "2026-09-21T09:12:00Z",
+      "type": "error",
+      "history_role": "observed",
+      "fingerprint": "error:path-quoting",
+      "source_event_id": null,
+      "payload": {
+        "message": "synthetic repeated inherited-lineage failure"
+      },
+      "provenance": {
+        "adapter": "synthetic-fixture",
+        "adapter_version": "v0alpha1",
+        "source": "fixtures/baseline-v0/session-metrics.json",
+        "source_index": 2
+      }
+    },
+    {
+      "schema_version": "agent-kpt.core/v0alpha1",
+      "id": "event-call-a-fork-history",
+      "session_id": "session-a-fork-1",
+      "timestamp": "2026-09-21T09:11:00Z",
+      "type": "model.call",
+      "history_role": "inherited",
+      "fingerprint": null,
+      "source_event_id": "event-call-a",
+      "payload": {
+        "input_tokens": 1200,
+        "output_tokens": 680
+      },
+      "provenance": {
+        "adapter": "synthetic-fixture",
+        "adapter_version": "v0alpha1",
+        "source": "synthetic-transcript-a-fork",
+        "source_index": 0
+      }
+    },
+    {
+      "schema_version": "agent-kpt.core/v0alpha1",
+      "id": "event-call-b",
+      "session_id": "session-b",
+      "timestamp": "2026-09-23T10:02:00Z",
+      "type": "model.call",
+      "history_role": "observed",
+      "fingerprint": null,
+      "source_event_id": null,
+      "payload": {
+        "input_tokens": 800,
+        "output_tokens": 420
+      },
+      "provenance": {
+        "adapter": "synthetic-fixture",
+        "adapter_version": "v0alpha1",
+        "source": "synthetic-transcript-b",
+        "source_index": 0
+      }
+    }
+  ],
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "code": "unsupported-record-shape",
+      "message": "Synthetic unknown record was skipped while ingestion continued.",
+      "recoverable": true,
+      "source_index": 99
+    }
+  ]
+}
