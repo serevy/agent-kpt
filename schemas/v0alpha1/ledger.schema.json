@@ -1,0 +1,135 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/serevy/agent-kpt/main/schemas/v0alpha1/ledger.schema.json",
+  "title": "agent-kpt improvement ledger v0alpha1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "problems"],
+  "properties": {
+    "schema_version": {"const": "agent-kpt.ledger/v0alpha1"},
+    "problems": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/problem"}
+    }
+  },
+  "$defs": {
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "model": {"type": ["string", "number", "boolean"]},
+        "model_family": {"type": ["string", "number", "boolean"]},
+        "harness": {"type": ["string", "number", "boolean"]},
+        "harness_version": {"type": ["string", "number", "boolean"]},
+        "adapter": {"type": ["string", "number", "boolean"]},
+        "adapter_version": {"type": ["string", "number", "boolean"]},
+        "skill_config_version": {"type": ["string", "number", "boolean"]},
+        "runtime": {"type": ["string", "number", "boolean"]},
+        "os": {"type": ["string", "number", "boolean"]}
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "observed_at", "root_lineage_id", "source", "environment"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "kind": {"type": "string", "minLength": 1},
+        "observed_at": {"type": "string", "format": "date-time"},
+        "root_lineage_id": {"type": ["string", "null"]},
+        "source": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "adapter": {"type": "string"},
+            "source": {"type": "string"},
+            "source_id": {"type": "string"},
+            "event_id": {"type": "string"},
+            "report_id": {"type": "string"},
+            "test_id": {"type": "string"}
+          }
+        },
+        "environment": {"$ref": "#/$defs/environment"}
+      }
+    },
+    "intervention": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id", "kind", "summary", "decision", "status", "proposed_at",
+        "applied_at", "validated_at", "retired_at", "validated_environment", "retire_reason"
+      ],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "kind": {"$ref": "#/$defs/target_type"},
+        "summary": {"type": "string", "minLength": 1},
+        "decision": {"enum": ["proposed", "accepted", "rejected", "deferred"]},
+        "status": {"enum": ["not-started", "applied", "verifying", "effective", "ineffective", "revise", "retired"]},
+        "proposed_at": {"type": "string", "format": "date-time"},
+        "applied_at": {"type": ["string", "null"], "format": "date-time"},
+        "validated_at": {"type": ["string", "null"], "format": "date-time"},
+        "retired_at": {"type": ["string", "null"], "format": "date-time"},
+        "validated_environment": {"$ref": "#/$defs/environment"},
+        "retire_reason": {"type": ["string", "null"]}
+      }
+    },
+    "target_type": {
+      "enum": ["human", "agent", "skill-instruction", "script", "workflow", "config", "tooling", "environment", "documentation", "upstream", "observe-only"]
+    },
+    "problem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id", "fingerprint", "title", "target_type", "lifecycle", "first_seen", "last_seen",
+        "independent_root_lineages", "evidence", "interventions", "keep", "revalidation",
+        "retirement_reason", "retired_at"
+      ],
+      "properties": {
+        "id": {"type": "string", "pattern": "^problem-[a-f0-9]{12}$"},
+        "fingerprint": {"type": "string", "minLength": 1},
+        "title": {"type": "string", "minLength": 1},
+        "target_type": {"$ref": "#/$defs/target_type"},
+        "lifecycle": {"enum": ["observed", "recurring", "try-proposed", "intervention-applied", "verifying", "keep", "ineffective", "revise", "habituated", "graduated", "retired"]},
+        "first_seen": {"type": "string", "format": "date-time"},
+        "last_seen": {"type": "string", "format": "date-time"},
+        "independent_root_lineages": {"type": "integer", "minimum": 0},
+        "evidence": {"type": "array", "items": {"$ref": "#/$defs/evidence"}},
+        "interventions": {"type": "array", "items": {"$ref": "#/$defs/intervention"}},
+        "keep": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["state", "since", "habituated_at", "graduated_at"],
+          "properties": {
+            "state": {"enum": ["none", "reinforcing", "habituated", "graduated"]},
+            "since": {"type": ["string", "null"], "format": "date-time"},
+            "habituated_at": {"type": ["string", "null"], "format": "date-time"},
+            "graduated_at": {"type": ["string", "null"], "format": "date-time"}
+          }
+        },
+        "revalidation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["state", "reasons"],
+          "properties": {
+            "state": {"enum": ["not-required", "current", "needs-revalidation"]},
+            "reasons": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["field", "validated", "current"],
+                "properties": {
+                  "field": {"type": "string"},
+                  "validated": {},
+                  "current": {}
+                }
+              }
+            }
+          }
+        },
+        "retirement_reason": {"type": ["string", "null"]},
+        "retired_at": {"type": ["string", "null"], "format": "date-time"}
+      }
+    }
+  }
+}
