@@ -1,0 +1,4 @@
+{"type":"user","uuid":"u-a-1","sessionId":"session-a","timestamp":"2026-09-21T09:00:00Z","version":"2.1.synthetic","message":{"content":"SECRET synthetic prompt text"}}
+{"type":"assistant","uuid":"assistant-shared","sessionId":"session-a","timestamp":"2026-09-21T09:01:00Z","version":"2.1.synthetic","message":{"model":"claude-synthetic","usage":{"input_tokens":1200,"output_tokens":680,"cache_creation_input_tokens":2200,"cache_read_input_tokens":51000},"content":[{"type":"text","text":"SECRET synthetic assistant text"},{"type":"tool_use","id":"tool-a","name":"Bash","input":{"command":"echo SECRET"}}]}}
+{"type":"tool_error","uuid":"error-a","sessionId":"session-a","timestamp":"2026-09-21T09:02:00Z","errorType":"path-quoting","tool":"Bash","tool_use_id":"tool-a","message":"SECRET raw error details"}
+{"type":"future-record-v99","uuid":"future-a","sessionId":"session-a","timestamp":"2026-09-21T09:03:00Z","private":"SECRET future payload"}

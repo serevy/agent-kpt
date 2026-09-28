@@ -116,3 +116,27 @@ The pre-OSS workflow is preserved as a sanitized behavioral reference before gen
 - [Baseline design](docs/baseline-v0.md)
 - [Synthetic fixtures](fixtures/baseline-v0/)
 - [Regression contract](fixtures/baseline-v0/regression-check.md)
+
+
+## Python reference implementation
+
+The normalized core contract stays language-neutral. Python is the first reference implementation for local ingestion and deterministic metrics.
+
+Requirements: Python 3.10+.
+
+```bash
+python -m pip install -e .
+
+agent-kpt ingest claude-code ~/.claude/projects/<project>/*.jsonl \
+  --lineage-map lineage.json \
+  -o normalized.json
+
+agent-kpt metrics normalized.json -o metrics.json
+agent-kpt report normalized.json -o report.md
+```
+
+The Claude Code adapter treats the on-disk JSONL format as unstable: known telemetry is normalized, unknown record shapes are reported as recoverable diagnostics, and raw prompt / assistant / tool content is not copied into normalized telemetry.
+
+Session lineage is explicit. Message-level `parentUuid` is not assumed to mean parent *session*; callers may provide a lineage map when reliable lineage information is available.
+
+The reference implementation is tested on Windows, macOS, and Linux. UTC reporting requires no external timezone data; other IANA timezones may require the `tzdata` package on platforms that do not provide an IANA timezone database.

@@ -1,0 +1,2 @@
+{"type":"user","uuid":"u-b-1","sessionId":"session-b","timestamp":"2026-09-23T10:00:00Z","version":"2.1.synthetic","message":{"content":"SECRET bounded refactor prompt"}}
+{"type":"assistant","uuid":"assistant-b","sessionId":"session-b","timestamp":"2026-09-23T10:02:00Z","version":"2.1.synthetic","message":{"model":"claude-synthetic","usage":{"input_tokens":800,"output_tokens":420,"cache_creation_input_tokens":900,"cache_read_input_tokens":39000},"content":[{"type":"text","text":"SECRET bounded response"}]}}
