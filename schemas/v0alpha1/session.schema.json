@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/serevy/agent-kpt/blob/main/schemas/v0alpha1/session.schema.json",
+  "$id": "https://raw.githubusercontent.com/serevy/agent-kpt/main/schemas/v0alpha1/session.schema.json",
   "title": "agent-kpt normalized session v0alpha1",
   "type": "object",
   "additionalProperties": false,
