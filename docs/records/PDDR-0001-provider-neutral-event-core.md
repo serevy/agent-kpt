@@ -3,7 +3,7 @@ id: PDDR-0001
 title: Provider-neutral normalized event core
 decision_date: 2026-09-28
 recorded_date: 2026-09-28
-decision_status: proposed
+decision_status: accepted
 delivery_status: in-progress
 scope:
   - project
@@ -62,7 +62,7 @@ No runtime implementation language has been selected yet.
 
 ## Decision
 
-Proposed contract:
+Accepted contract:
 
 1. provider adapters own source transcript parsing;
 2. adapters emit normalized Session/Event records plus diagnostics;
@@ -72,7 +72,7 @@ Proposed contract:
 6. unknown provider record shapes fail soft when trustworthy partial normalization remains possible;
 7. runtime implementation language remains intentionally undecided.
 
-This record stays `proposed` until the repository owner reviews the contract.
+The repository owner accepted this contract on 2026-09-28, with the expectation that it may be revised through a later PDDR if implementation evidence exposes problems.
 
 ## Delivery and validation
 
