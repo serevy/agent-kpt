@@ -8,6 +8,7 @@ from typing import Any
 
 from agent_kpt.adapters.claude_code import ingest_paths, load_lineage_map
 from agent_kpt.metrics import compute_metrics, render_metrics_markdown
+from agent_kpt.report import render_report_html, render_report_markdown
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -31,6 +32,14 @@ def build_parser() -> argparse.ArgumentParser:
     report.add_argument("--timezone", default="UTC", help="IANA report timezone")
     report.add_argument("-o", "--output", default="-", help="output Markdown path, or - for stdout")
 
+    render = subcommands.add_parser(
+        "render-report",
+        help="render a concise Report View Model as HTML or Markdown",
+    )
+    render.add_argument("input", help="report-view JSON")
+    render.add_argument("--format", choices=("html", "markdown"), default="html")
+    render.add_argument("-o", "--output", default="-", help="output path, or - for stdout")
+
     return parser
 
 
@@ -52,6 +61,15 @@ def main(argv: list[str] | None = None) -> int:
             normalized = _read_json(args.input)
             result = compute_metrics(normalized, report_timezone=args.timezone)
             _write_text(args.output, render_metrics_markdown(result))
+            return 0
+        if args.command == "render-report":
+            view = _read_json(args.input)
+            rendered = (
+                render_report_html(view)
+                if args.format == "html"
+                else render_report_markdown(view)
+            )
+            _write_text(args.output, rendered)
             return 0
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         print(f"agent-kpt: {exc}", file=sys.stderr)
