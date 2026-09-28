@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/serevy/agent-kpt/main/schemas/v0alpha1/analysis-packet.schema.json",
+  "title": "agent-kpt privacy-safe analysis packet v0alpha1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "mode",
+    "generated_at",
+    "period",
+    "project",
+    "metrics",
+    "signals",
+    "environment",
+    "environment_changes",
+    "ledger",
+    "evidence",
+    "diagnostics",
+    "report_contract",
+    "privacy"
+  ],
+  "properties": {
+    "schema_version": {"const": "agent-kpt.analysis/v0alpha1"},
+    "mode": {"enum": ["weekly", "monthly"]},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "period": {"type": "object"},
+    "project": {"type": "object"},
+    "metrics": {"type": "object"},
+    "signals": {"type": "object"},
+    "environment": {"type": "object"},
+    "environment_changes": {"type": "array"},
+    "ledger": {"type": "object"},
+    "evidence": {"type": "array"},
+    "diagnostics": {"type": "array"},
+    "report_contract": {"type": "object"},
+    "privacy": {
+      "type": "object",
+      "required": [
+        "raw_prompt_text_persisted",
+        "raw_assistant_text_persisted",
+        "raw_tool_input_persisted"
+      ],
+      "properties": {
+        "raw_prompt_text_persisted": {"const": false},
+        "raw_assistant_text_persisted": {"const": false},
+        "raw_tool_input_persisted": {"const": false}
+      }
+    }
+  }
+}
