@@ -176,3 +176,45 @@ agent-kpt render-report fixtures/report-v0alpha1/report-ja.json \
 ```
 
 Japanese wording may optionally be polished by an external writing skill such as [natural-japanese](https://github.com/coji/natural-japanese). Copy polish happens **after facts are fixed** and must not change KPI values, lineage counts, lifecycle states, evidence IDs, timestamps, or provenance. See [Japanese copy polish boundary](docs/japanese-copy-policy.md).
+
+
+## One-command workflow
+
+The day-to-day entrypoint is an Agent Skill:
+
+```text
+/agent-kpt
+/agent-kpt weekly
+/agent-kpt monthly
+/agent-kpt status
+```
+
+No argument means `weekly`.
+
+The Skill keeps the interactive layer thin. Python discovers Claude Code transcripts for the current project, normalizes them, builds a privacy-safe analysis packet, and keeps the local improvement ledger. The invoking agent composes the concise report from that packet, then the deterministic renderer produces HTML and Markdown.
+
+The default packet does **not** persist raw prompt text, assistant text, or raw tool input/output.
+
+### Try the Skill from this repository
+
+The Skill lives at [`skills/agent-kpt/SKILL.md`](skills/agent-kpt/SKILL.md). Install/copy that skill with your Agent Skill workflow to expose `/agent-kpt`.
+
+For Claude Code plugin development, this repository also includes [`.claude-plugin/plugin.json`](.claude-plugin/plugin.json) and a portable launcher. Claude Code's plugin development flow can load the cloned repository as a local plugin directory for testing; plugin-installed names may be namespaced by the host.
+
+The Skill uses an installed `agent-kpt` CLI when available. When loaded from this repository as a Claude Code plugin, it can fall back to:
+
+```bash
+python "${CLAUDE_PLUGIN_ROOT}/scripts/agent-kpt.py" status --project .
+```
+
+Python 3.10+ is required. The Skill does not install dependencies into the user's project automatically.
+
+Persistent state is stored outside the project under:
+
+```text
+~/.agent-kpt/projects/<hashed-project-path>/
+```
+
+Set `AGENT_KPT_HOME` to override that location.
+
+See [One-command workflow](docs/one-command-workflow.md) for the architecture and privacy boundary.
