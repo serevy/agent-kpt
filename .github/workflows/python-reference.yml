@@ -6,14 +6,22 @@ on:
     paths:
       - "src/**"
       - "tests/**"
-      - "fixtures/claude-code-v0alpha1/**"
+      - "fixtures/**"
+      - "schemas/**"
+      - "scripts/**"
+      - "skills/**"
+      - ".claude-plugin/**"
       - "pyproject.toml"
       - ".github/workflows/python-reference.yml"
   pull_request:
     paths:
       - "src/**"
       - "tests/**"
-      - "fixtures/claude-code-v0alpha1/**"
+      - "fixtures/**"
+      - "schemas/**"
+      - "scripts/**"
+      - "skills/**"
+      - ".claude-plugin/**"
       - "pyproject.toml"
       - ".github/workflows/python-reference.yml"
 
