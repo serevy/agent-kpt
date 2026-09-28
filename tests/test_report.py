@@ -1,0 +1,67 @@
+import copy
+import json
+import unittest
+from pathlib import Path
+
+from agent_kpt.report import (
+    render_report_html,
+    render_report_markdown,
+    validate_report_model,
+)
+
+ROOT = Path(__file__).resolve().parents[1]
+FIXTURE = ROOT / "fixtures" / "report-v0alpha1" / "report-ja.json"
+
+
+class ReportViewTests(unittest.TestCase):
+    def _report(self):
+        return json.loads(FIXTURE.read_text(encoding="utf-8"))
+
+    def test_fixture_is_valid_and_has_one_next_try(self):
+        report = self._report()
+        validate_report_model(report)
+        self.assertIsInstance(report["next_try"], dict)
+        self.assertNotIn("score", json.dumps(report, ensure_ascii=False).lower())
+
+    def test_markdown_is_summary_first_and_evidence_backed(self):
+        rendered = render_report_markdown(self._report())
+        self.assertLess(rendered.index("🌱 次に1つだけ試す"), rendered.index("詳しく見る（数字・根拠）"))
+        self.assertIn("パス指定の失敗 | 2 | 2 | 1 | 1 | 1", rendered)
+        self.assertIn("Claude Code", rendered)
+        self.assertIn("2.0.synthetic → 2.1.synthetic", rendered)
+
+    def test_html_uses_collapsed_progressive_disclosure(self):
+        rendered = render_report_html(self._report())
+        self.assertIn('<details class="drilldown">', rendered)
+        self.assertNotIn('<details class="drilldown" open', rendered)
+        self.assertIn("詳しく見る（数字・根拠）", rendered)
+        self.assertIn("独立した作業", rendered)
+        self.assertLess(rendered.index("次に1つだけ試す"), rendered.index('<details class="drilldown">'))
+
+    def test_card_caps_prevent_report_bloat(self):
+        report = self._report()
+        report["keep"] = report["keep"] * 4
+        with self.assertRaisesRegex(ValueError, "keep must contain at most 3"):
+            validate_report_model(report)
+
+    def test_next_try_cannot_expand_into_a_list(self):
+        report = self._report()
+        report["next_try"] = [report["next_try"], copy.deepcopy(report["next_try"])]
+        with self.assertRaisesRegex(ValueError, "one object or null"):
+            validate_report_model(report)
+
+    def test_scoring_keys_are_rejected(self):
+        report = self._report()
+        report["kpis"][0]["score"] = 92
+        with self.assertRaisesRegex(ValueError, "must not score or rank"):
+            validate_report_model(report)
+
+    def test_missing_evidence_reference_is_rejected(self):
+        report = self._report()
+        report["next_try"]["evidence_ids"] = ["missing-evidence"]
+        with self.assertRaisesRegex(ValueError, "missing evidence ids"):
+            validate_report_model(report)
+
+
+if __name__ == "__main__":
+    unittest.main()

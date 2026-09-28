@@ -1,0 +1,110 @@
+{
+  "schema_version": "agent-kpt.report/v0alpha1",
+  "report_id": "weekly-synthetic-2026-w39",
+  "period": {
+    "kind": "weekly",
+    "start": "2026-09-21",
+    "end": "2026-09-27",
+    "timezone": "Asia/Tokyo"
+  },
+  "locale": "ja-JP",
+  "headline": "今週はかなり安定。次はパス指定だけ少し整えよう。",
+  "summary": "調査と小さな修正をうまく使い分けられています。同じ失敗が2回見えましたが、同じ作業の枝分かれなので、独立した再発は1系統です。",
+  "kpis": [
+    {
+      "label": "実質的な作業の流れ",
+      "value": 2,
+      "hint": "枝分かれをまとめた数"
+    },
+    {
+      "label": "新しいモデル呼び出し",
+      "value": 2,
+      "hint": "履歴の再表示は除外"
+    },
+    {
+      "label": "気になる再発",
+      "value": 1,
+      "hint": "今回は独立再発ではない"
+    }
+  ],
+  "keep": [
+    {
+      "title": "分かっている修正は、迷わず狙い撃ちできた",
+      "body": "場所が分かっている作業では余計な探索が少なく、短く終えられました。",
+      "badge": "KEEP",
+      "evidence_ids": ["ev-session-b"]
+    }
+  ],
+  "problems": [
+    {
+      "title": "パス指定の失敗が2回見えた",
+      "body": "ただし同じ調査の枝分かれです。『2回再発した』とまでは考えなくて大丈夫です。",
+      "badge": "WATCH",
+      "evidence_ids": ["ev-path-a", "ev-path-fork"]
+    }
+  ],
+  "next_try": {
+    "title": "Bashに渡すパスだけ、一度確認してから実行する",
+    "body": "今週はこれ1つだけ試して、同じ失敗が別の作業でも出るか見てみましょう。",
+    "badge": "TRY",
+    "evidence_ids": ["ev-path-a", "ev-path-fork"]
+  },
+  "trends": [
+    {
+      "label": "fork由来の重複",
+      "direction": "new",
+      "body": "生ログの回数と、独立した再発を分けて見られるようになりました。"
+    }
+  ],
+  "environment_markers": [
+    {
+      "label": "Claude Code",
+      "previous": "2.0.synthetic",
+      "current": "2.1.synthetic",
+      "body": "環境が変わった週なので、古い改善策は必要なら再確認します。"
+    }
+  ],
+  "details": {
+    "metrics": [
+      {
+        "label": "パス指定の失敗",
+        "plain_note": "2回見えますが、同じroot lineage内なので独立した再発は1系統です。",
+        "raw_occurrences": 2,
+        "unique_sessions": 2,
+        "unique_root_lineages": 1,
+        "distinct_days": 1,
+        "distinct_weeks": 1
+      }
+    ],
+    "evidence": [
+      {
+        "id": "ev-session-b",
+        "title": "既知の場所への小さな修正",
+        "observed_at": "2026-09-23T10:02:00Z",
+        "root_lineage_id": "root-b",
+        "source": "session-b.jsonl",
+        "note": "余計な探索やツールエラーなし。"
+      },
+      {
+        "id": "ev-path-a",
+        "title": "最初のパス指定エラー",
+        "observed_at": "2026-09-21T09:02:00Z",
+        "root_lineage_id": "root-a",
+        "source": "session-a.jsonl"
+      },
+      {
+        "id": "ev-path-fork",
+        "title": "fork側で見えた同系統のエラー",
+        "observed_at": "2026-09-21T09:12:00Z",
+        "root_lineage_id": "root-a",
+        "source": "session-a-fork-1.jsonl",
+        "note": "別セッションだが独立したroot lineageではない。"
+      }
+    ],
+    "diagnostics": [
+      {
+        "message": "未知のrecord typeを1件スキップしました。既知のtelemetry集計は継続しています。"
+      }
+    ]
+  }
+}
