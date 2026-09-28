@@ -3,8 +3,8 @@ id: PDDR-0003
 title: Stateful improvement ledger lifecycle
 decision_date: 2026-09-28
 recorded_date: 2026-09-28
-decision_status: proposed
-delivery_status: in-progress
+decision_status: accepted
+delivery_status: validated
 scope:
   - project
   - product
@@ -55,7 +55,7 @@ PDDR-0001 already makes lineage and environment provenance available to the core
 
 ## Decision
 
-Proposed v0alpha1 contract:
+Accepted v0alpha1 contract:
 
 1. problem IDs are stable functions of the recurring fingerprint;
 2. recurrence becomes independent only across distinct root lineages;
@@ -65,15 +65,20 @@ Proposed v0alpha1 contract:
 6. validation environment is retained and material changes mark `needs-revalidation` rather than automatically declaring an old intervention invalid;
 7. interventions and problems have explicit retirement paths that preserve historical evidence.
 
-This remains `proposed` until the repository owner reviews the lifecycle and authority boundaries.
+The repository owner reviewed and accepted this lifecycle and authority contract on 2026-09-29. Future dogfooding may revise it through a later PDDR without rewriting this record.
 
 ## Delivery and validation
 
-Prototype implementation is in progress for Issue #3:
+Validated in PR #9.
 
-- `schemas/v0alpha1/ledger.schema.json`;
-- `src/agent_kpt/ledger.py` reference helpers;
-- synthetic lifecycle tests covering recurrence, human decision, intervention status, Keep graduation, revalidation, and retirement.
+Evidence:
+
+- `schemas/v0alpha1/ledger.schema.json` defines the machine-readable ledger contract;
+- `src/agent_kpt/ledger.py` implements the Python reference lifecycle helpers;
+- synthetic lifecycle tests cover lineage-aware recurrence, human decision state, intervention delivery/effectiveness state, Keep graduation, environment-triggered revalidation, and retirement;
+- the full test suite passes with 10 tests;
+- GitHub Actions passes on Ubuntu (Python 3.10 and 3.13), Windows (Python 3.11), and macOS (Python 3.11);
+- PDDR validation passes.
 
 ## Consequences
 
