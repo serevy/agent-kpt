@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/serevy/agent-kpt/main/schemas/v0alpha1/review-actions.schema.json",
+  "title": "agent-kpt semantic review actions v0alpha1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "problems"],
+  "properties": {
+    "schema_version": {"const": "agent-kpt.review/v0alpha1"},
+    "problems": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "fingerprint",
+          "title",
+          "target_type",
+          "evidence_ids"
+        ],
+        "properties": {
+          "fingerprint": {"type": "string", "minLength": 1},
+          "title": {"type": "string", "minLength": 1},
+          "target_type": {
+            "enum": [
+              "human",
+              "agent",
+              "skill-instruction",
+              "script",
+              "workflow",
+              "config",
+              "tooling",
+              "environment",
+              "documentation",
+              "upstream",
+              "observe-only"
+            ]
+          },
+          "evidence_ids": {
+            "type": "array",
+            "minItems": 1,
+            "items": {"type": "string", "minLength": 1}
+          },
+          "next_try": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["kind", "summary"],
+            "properties": {
+              "kind": {"type": "string", "minLength": 1},
+              "summary": {"type": "string", "minLength": 1}
+            }
+          }
+        }
+      }
+    }
+  }
+}

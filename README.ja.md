@@ -179,3 +179,45 @@ agent-kpt render-report fixtures/report-v0alpha1/report-ja.json \
 日本語の表現は、必要なら [natural-japanese](https://github.com/coji/natural-japanese) のような外部writing skillで整えられます。ただしcopy polishを行うのは**事実を確定した後**です。KPI、lineage数、lifecycle state、Evidence ID、timestamp、provenanceは変更しません。
 
 詳しくは [Japanese copy polish boundary](docs/japanese-copy-policy.md) を参照してください。
+
+
+## いつもの入口は `/agent-kpt`
+
+普段はAgent Skillから呼びます。
+
+```text
+/agent-kpt
+/agent-kpt weekly
+/agent-kpt monthly
+/agent-kpt status
+```
+
+引数なしは `weekly` です。
+
+Skill側はできるだけ薄くしています。Pythonが現在のProjectに対応するClaude Codeログを探し、重複を除いて集計し、privacy-safeなanalysis packetとローカルLedgerを作ります。そのpacketをAgentが読み取って短いレポートを組み立て、最後にdeterministic rendererがHTML / Markdownへ変換します。
+
+既定のpacketには、生のprompt本文、assistant本文、tool input / outputを保存しません。
+
+### このリポジトリから試す
+
+Skill本体は [`skills/agent-kpt/SKILL.md`](skills/agent-kpt/SKILL.md) にあります。利用しているAgent Skillの導入方法でこのSkillを追加すると、`/agent-kpt` を入口にできます。
+
+Claude Code向けには [`.claude-plugin/plugin.json`](.claude-plugin/plugin.json) とrepo-local launcherも入っています。開発時はcloneしたこのリポジトリをlocal plugin directoryとして読み込んで検証できます。Pluginとして読み込む場合は、host側のnamespaceがコマンド名に付くことがあります。
+
+インストール済みの `agent-kpt` CLIがあればそれを使い、Claude Code Pluginとしてこのrepoから実行する場合は次のlauncherへfallbackできます。
+
+```bash
+python "${CLAUDE_PLUGIN_ROOT}/scripts/agent-kpt.py" status --project .
+```
+
+Python 3.10+ が必要です。Skillが利用者のProjectへ勝手にdependencyをinstallすることはありません。
+
+Ledgerなどの永続stateはProject外に保存します。
+
+```text
+~/.agent-kpt/projects/<hashed-project-path>/
+```
+
+保存場所を変えたい場合は `AGENT_KPT_HOME` を使えます。
+
+詳しい処理の流れとprivacy boundaryは [One-command workflow](docs/one-command-workflow.md) を参照してください。
