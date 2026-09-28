@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/serevy/agent-kpt/blob/main/schemas/v0alpha1/event.schema.json",
+  "title": "agent-kpt normalized event v0alpha1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "id",
+    "session_id",
+    "timestamp",
+    "type",
+    "history_role",
+    "payload",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "agent-kpt.core/v0alpha1"
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "session_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "type": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[a-z0-9]+(?:[._-][a-z0-9]+)*$"
+    },
+    "history_role": {
+      "type": "string",
+      "enum": ["observed", "inherited", "replayed", "derived"],
+      "description": "Whether the event is new in this session, inherited from an ancestor, replayed by the harness, or derived by deterministic processing."
+    },
+    "fingerprint": {
+      "anyOf": [
+        { "type": "string", "minLength": 1 },
+        { "type": "null" }
+      ],
+      "default": null,
+      "description": "Optional stable grouping key for recurrence metrics."
+    },
+    "source_event_id": {
+      "anyOf": [
+        { "type": "string", "minLength": 1 },
+        { "type": "null" }
+      ],
+      "default": null,
+      "description": "Optional normalized event ID this event inherits/replays."
+    },
+    "payload": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "provenance": {
+      "$ref": "#/$defs/provenance"
+    }
+  },
+  "$defs": {
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["adapter", "source"],
+      "properties": {
+        "adapter": { "type": "string", "minLength": 1 },
+        "adapter_version": {
+          "anyOf": [
+            { "type": "string", "minLength": 1 },
+            { "type": "null" }
+          ],
+          "default": null
+        },
+        "source": { "type": "string", "minLength": 1 },
+        "source_index": {
+          "anyOf": [
+            { "type": "integer", "minimum": 0 },
+            { "type": "null" }
+          ],
+          "default": null
+        }
+      }
+    }
+  }
+}

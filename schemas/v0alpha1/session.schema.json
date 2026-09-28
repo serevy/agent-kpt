@@ -1,0 +1,123 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/serevy/agent-kpt/blob/main/schemas/v0alpha1/session.schema.json",
+  "title": "agent-kpt normalized session v0alpha1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "id",
+    "root_lineage_id",
+    "provider",
+    "harness",
+    "started_at",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "agent-kpt.core/v0alpha1"
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "root_lineage_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "parent_session_id": {
+      "anyOf": [
+        { "type": "string", "minLength": 1 },
+        { "type": "null" }
+      ],
+      "default": null
+    },
+    "provider": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Source model/provider family as reported by the adapter; not an architecture boundary."
+    },
+    "harness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "version": {
+          "anyOf": [
+            { "type": "string", "minLength": 1 },
+            { "type": "null" }
+          ],
+          "default": null
+        }
+      }
+    },
+    "model": {
+      "anyOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name"],
+          "properties": {
+            "name": { "type": "string", "minLength": 1 },
+            "family": {
+              "anyOf": [
+                { "type": "string", "minLength": 1 },
+                { "type": "null" }
+              ],
+              "default": null
+            }
+          }
+        },
+        { "type": "null" }
+      ],
+      "default": null
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "ended_at": {
+      "anyOf": [
+        { "type": "string", "format": "date-time" },
+        { "type": "null" }
+      ],
+      "default": null
+    },
+    "environment": {
+      "type": "object",
+      "additionalProperties": {
+        "type": ["string", "number", "boolean", "null"]
+      },
+      "default": {}
+    },
+    "provenance": {
+      "$ref": "#/$defs/provenance"
+    }
+  },
+  "$defs": {
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["adapter", "source"],
+      "properties": {
+        "adapter": { "type": "string", "minLength": 1 },
+        "adapter_version": {
+          "anyOf": [
+            { "type": "string", "minLength": 1 },
+            { "type": "null" }
+          ],
+          "default": null
+        },
+        "source": { "type": "string", "minLength": 1 },
+        "source_id": {
+          "anyOf": [
+            { "type": "string", "minLength": 1 },
+            { "type": "null" }
+          ],
+          "default": null
+        }
+      }
+    }
+  }
+}
