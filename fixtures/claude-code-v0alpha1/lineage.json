@@ -1,0 +1,14 @@
+{
+  "session-a": {
+    "root_lineage_id": "root-a",
+    "parent_session_id": null
+  },
+  "session-a-fork-1": {
+    "root_lineage_id": "root-a",
+    "parent_session_id": "session-a"
+  },
+  "session-b": {
+    "root_lineage_id": "root-b",
+    "parent_session_id": null
+  }
+}

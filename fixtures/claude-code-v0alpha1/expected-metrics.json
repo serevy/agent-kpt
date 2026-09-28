@@ -1,0 +1,27 @@
+{
+  "schema_version": "agent-kpt.core/v0alpha1",
+  "report_timezone": "UTC",
+  "session_metrics": {
+    "raw_sessions": 3,
+    "unique_root_lineages": 2
+  },
+  "recurrence": {
+    "error:path-quoting": {
+      "raw_occurrences": 2,
+      "unique_sessions": 2,
+      "unique_root_lineages": 1,
+      "distinct_days": 1,
+      "distinct_weeks": 1
+    }
+  },
+  "model_calls": {
+    "raw_model_call_events": 3,
+    "actual_new_model_calls": 2,
+    "inherited_model_call_events": 1,
+    "replayed_model_call_events": 0
+  },
+  "adapter_diagnostics": {
+    "recoverable": 1,
+    "fatal": 0
+  }
+}
