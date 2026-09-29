@@ -1,0 +1,83 @@
+language: "ja-JP"
+
+reviews:
+  profile: "chill"
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  review_status: true
+  review_details: false
+
+  auto_review:
+    enabled: true
+    drafts: false
+
+  path_instructions:
+    - path: "**/*"
+      instructions: |
+        Focus on concrete correctness, privacy, compatibility, and regression risks.
+        Avoid subjective style-only comments and speculative refactors unless they prevent a concrete defect.
+        Preserve deliberate architecture boundaries rather than recommending abstraction only for DRYness.
+
+    - path: "src/agent_kpt/**"
+      instructions: |
+        Preserve the deterministic-first architecture.
+        Semantic interpretation must not replace deterministic arithmetic or validation.
+
+        Do not persist raw prompt text, assistant text, or raw tool input/output
+        in normalized telemetry or the default analysis packet.
+
+        Keep the core provider-neutral.
+        Claude Code-specific behavior belongs in adapters or integration layers.
+
+        Treat session lineage conservatively.
+        Message parentUuid is not session ancestry.
+        Split assistant records belonging to one response must not inflate model-call,
+        usage, or recurrence metrics.
+
+        Unknown provider record shapes should fail soft with diagnostics rather than
+        corrupting metrics or silently fabricating normalized data.
+
+    - path: "schemas/**"
+      instructions: |
+        Check consistency between schemas, runtime producers and consumers,
+        fixtures, documentation, and schema_version values.
+
+        Flag accidental provider-specific concepts in provider-neutral contracts.
+
+        When a schema changes, check that affected producers, consumers, tests,
+        fixtures, and documentation migrate together.
+
+    - path: "tests/**"
+      instructions: |
+        Prioritize observable regression coverage for privacy boundaries,
+        lineage and deduplication, malformed or unknown input, and cross-platform behavior.
+
+        Flag tests that merely mirror implementation details without proving behavior.
+
+    - path: "skills/**"
+      instructions: |
+        Preserve the supported modes: weekly, monthly, and status.
+        Do not invent additional modes.
+
+        Do not silently install dependencies or modify the user's project.
+
+        Ledger interventions must remain proposed until the user accepts them.
+
+        Cleanup must only remove documented temporary files and must preserve
+        generated reports and unrelated user files.
+
+    - path: ".github/workflows/**"
+      instructions: |
+        Preserve least-privilege permissions and cross-platform validation.
+        Flag changes that unnecessarily introduce write permissions, secret exposure,
+        or reduce Windows, macOS, or Linux regression coverage.
+
+    - path: "docs/records/**"
+      instructions: |
+        PDDR records describe durable decisions, not task logs.
+        Focus on contradictions between accepted decisions, implementation, and evidence.
+        Avoid subjective prose or formatting suggestions unless meaning or accuracy changes.
+
+chat:
+  auto_reply: true
