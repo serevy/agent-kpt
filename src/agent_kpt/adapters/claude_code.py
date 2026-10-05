@@ -803,31 +803,38 @@ def _attach_tool_names(events: list[dict[str, Any]]) -> None:
             payload["tool"] = tool_by_use_id[tool_use_id]
 
 
-def _extract_error_text(value: Any) -> str:
+def _extract_error_text(value: Any, *, max_depth: int = 8) -> str:
     parts: list[str] = []
 
-    def collect(item: Any) -> None:
+    def collect(item: Any, depth: int) -> None:
+        if depth > max_depth:
+            return
         if isinstance(item, str):
             parts.append(item)
             return
         if isinstance(item, list):
             for child in item:
-                collect(child)
+                collect(child, depth + 1)
             return
         if isinstance(item, dict):
             for key in ("text", "message", "error", "stderr", "content"):
                 if key in item:
-                    collect(item[key])
+                    collect(item[key], depth + 1)
 
-    collect(value)
+    collect(value, 0)
     return "\n".join(parts)
-
 
 def _classify_error(*, error_type: str | None, text: str) -> tuple[str, str]:
     haystack = f"{error_type or ''}\n{text}".lower()
 
+    if (
+        "rate limit" in haystack
+        or "too many requests" in haystack
+        or re.search(r"\b(?:http(?: status)?|status(?: code)?)\s*[:=]?\s*429\b", haystack)
+    ):
+        return "rate-limit", "rate-limit"
+
     rules = [
-        ("rate-limit", "rate-limit", ("rate limit", "too many requests", "429")),
         ("auth", "unauthorized", ("unauthorized", "authentication", "invalid token", "api key")),
         ("permission", "permission-denied", ("permission denied", "access denied", "eacces", "operation not permitted")),
         ("timeout", "timeout", ("timed out", "timeout", "deadline exceeded", "etimedout")),
