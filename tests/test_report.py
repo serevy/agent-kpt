@@ -38,6 +38,30 @@ class ReportViewTests(unittest.TestCase):
         self.assertIn("独立した作業", rendered)
         self.assertLess(rendered.index("次に1つだけ試す"), rendered.index('<details class="drilldown">'))
 
+    def test_error_evidence_is_grouped_before_full_list(self):
+        report = self._report()
+        for index, item in enumerate(report["details"]["evidence"]):
+            item["kind"] = "error"
+            item["session_id"] = f"session-{index}"
+            item["category"] = "path"
+            item["subtype"] = "file-not-found"
+            item["tool"] = "Bash"
+        rendered = render_report_html(report)
+        self.assertIn("エラー分類", rendered)
+        self.assertIn("代表Evidence", rendered)
+        self.assertIn("全Evidenceを見る", rendered)
+        self.assertIn('class="evidence-all"', rendered)
+        self.assertIn("file-not-found", rendered)
+        self.assertIn("エラー本文は保存せず", rendered)
+
+    def test_counted_diagnostics_render_as_one_line(self):
+        report = self._report()
+        report["details"]["diagnostics"] = [
+            {"message": "Missing timestamp records were skipped.", "count": 15877}
+        ]
+        rendered = render_report_markdown(report)
+        self.assertIn("Missing timestamp records were skipped. ×15877", rendered)
+
     def test_card_caps_prevent_report_bloat(self):
         report = self._report()
         report["keep"] = report["keep"] * 4
