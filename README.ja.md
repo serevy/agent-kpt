@@ -212,12 +212,20 @@ python "${CLAUDE_PLUGIN_ROOT}/scripts/agent-kpt.py" status --project .
 
 Python 3.10+ が必要です。Skillが利用者のProjectへ勝手にdependencyをinstallすることはありません。
 
-Ledgerなどの永続stateはProject外に保存します。
+Ledger、workflow中間ファイル、レポートは既定で対象Projectの外に保存します。
 
 ```text
 ~/.agent-kpt/projects/<hashed-project-path>/
+  ledger.json
+  last-packet.json
+  work/
+  reports/
 ```
 
-保存場所を変えたい場合は `AGENT_KPT_HOME` を使えます。
+state全体の保存場所を変えたい場合は `AGENT_KPT_HOME`、最終レポートだけ変えたい場合は `AGENT_KPT_REPORT_DIR` を使えます。
+
+既定のanalysis packetには、生のprompt本文、assistant本文、tool input / output、エラー本文を保存しません。エラー本文は利用者のローカル環境で一時的に分類へ使い、`category / subtype / tool / fingerprint` などの派生情報だけを保持します。
+
+同じadapter warningはcode単位で件数集約し、`user.message` は個別Evidenceへ大量投入せず、件数や文字数などの集計値だけを残します。
 
 詳しい処理の流れとprivacy boundaryは [One-command workflow](docs/one-command-workflow.md) を参照してください。
