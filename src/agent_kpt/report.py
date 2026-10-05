@@ -366,15 +366,16 @@ def _markdown_details(report: Mapping[str, Any], text: Mapping[str, str]) -> lis
         )
         for group in error_groups:
             lines.append(
-                f"| {group['category']} | {group['subtype']} | {group['tool']} | "
-                f"{group['raw_occurrences']} | {group['unique_sessions']} | {group['unique_root_lineages']} |"
+                f"| {_markdown_safe(group['category'])} | {_markdown_safe(group['subtype'])} | "
+                f"{_markdown_safe(group['tool'])} | {group['raw_occurrences']} | "
+                f"{group['unique_sessions']} | {group['unique_root_lineages']} |"
             )
 
         lines.extend(["", f"### {text['representative']}", ""])
         for group in error_groups:
             lines.append(
-                f"#### {group['category']} / {group['subtype']} · {group['tool']} "
-                f"({group['raw_occurrences']})"
+                f"#### {_markdown_safe(group['category'])} / {_markdown_safe(group['subtype'])} "
+                f"· {_markdown_safe(group['tool'])} ({group['raw_occurrences']})"
             )
             lines.append("")
             for item in group["representative"]:
@@ -396,23 +397,38 @@ def _markdown_details(report: Mapping[str, Any], text: Mapping[str, str]) -> lis
     return lines
 
 
+def _markdown_safe(value: Any) -> str:
+    escaped = escape(str(value), quote=False)
+    return (
+        escaped.replace("|", "&#124;")
+        .replace("\r\n", "\n")
+        .replace("\r", "\n")
+        .replace("\n", "<br>")
+    )
+
+
+def _markdown_code(value: Any) -> str:
+    return f"<code>{_markdown_safe(value)}</code>"
+
+
 def _markdown_evidence_item(item: Mapping[str, Any], text: Mapping[str, str]) -> list[str]:
     lineage = item.get("root_lineage_id") or "-"
     extras = []
     if item.get("category"):
-        extras.append(f"{text['category']}: `{item['category']}`")
+        extras.append(f"{text['category']}: {_markdown_code(item['category'])}")
     if item.get("subtype"):
-        extras.append(f"{text['subtype']}: `{item['subtype']}`")
+        extras.append(f"{text['subtype']}: {_markdown_code(item['subtype'])}")
     if item.get("tool"):
-        extras.append(f"{text['tool']}: `{item['tool']}`")
+        extras.append(f"{text['tool']}: {_markdown_code(item['tool'])}")
     lines = [
-        f"- **{item['title']}**",
-        f"  - {item['observed_at']} · {text['lineage']}: `{lineage}` · {text['source']}: `{item['source']}`",
+        f"- **{_markdown_safe(item['title'])}**",
+        f"  - {_markdown_safe(item['observed_at'])} · {text['lineage']}: {_markdown_code(lineage)} "
+        f"· {text['source']}: {_markdown_code(item['source'])}",
     ]
     if extras:
         lines.append("  - " + " · ".join(extras))
     if item.get("note"):
-        lines.append(f"  - {item['note']}")
+        lines.append(f"  - {_markdown_safe(item['note'])}")
     return lines
 
 def _html_cards(items: list[Mapping[str, Any]], kind: str) -> str:
@@ -590,17 +606,20 @@ def _representative_evidence(
     items: list[Mapping[str, Any]], *, limit: int
 ) -> list[Mapping[str, Any]]:
     selected: list[Mapping[str, Any]] = []
+    selected_object_ids: set[int] = set()
     seen_lineages: set[str] = set()
     for item in items:
         lineage = item.get("root_lineage_id")
         if isinstance(lineage, str) and lineage not in seen_lineages:
             selected.append(item)
+            selected_object_ids.add(id(item))
             seen_lineages.add(lineage)
         if len(selected) >= limit:
             return selected
     for item in items:
-        if item not in selected:
+        if id(item) not in selected_object_ids:
             selected.append(item)
+            selected_object_ids.add(id(item))
         if len(selected) >= limit:
             break
     return selected
