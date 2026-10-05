@@ -54,6 +54,20 @@ class ReportViewTests(unittest.TestCase):
         self.assertIn("file-not-found", rendered)
         self.assertIn("エラー本文は保存せず", rendered)
 
+    def test_markdown_escapes_error_group_values(self):
+        report = self._report()
+        item = report["details"]["evidence"][0]
+        item["kind"] = "error"
+        item["session_id"] = "session-a"
+        item["category"] = "path|odd"
+        item["subtype"] = "file\nnot-found"
+        item["tool"] = "Bash|Tool"
+        rendered = render_report_markdown(report)
+        self.assertIn("path&#124;odd", rendered)
+        self.assertIn("file<br>not-found", rendered)
+        self.assertIn("Bash&#124;Tool", rendered)
+        self.assertNotIn("| path|odd |", rendered)
+
     def test_counted_diagnostics_render_as_one_line(self):
         report = self._report()
         report["details"]["diagnostics"] = [
