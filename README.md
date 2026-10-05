@@ -221,7 +221,7 @@ Persistent state, workflow intermediates, and reports are stored outside the tar
 
 Set `AGENT_KPT_HOME` to override the base state directory.
 
-Set `AGENT_KPT_REPORT_DIR` to override the final report directory.
+Set `AGENT_KPT_REPORT_DIR` to override the final report directory. This is an explicit override: if you point it inside the target repository, reports will intentionally appear there and may show up in `git status`.
 
 Raw prompt text, assistant text, tool input/output, and raw error text are not persisted by the default analysis packet. Error text may be inspected transiently on the user's machine to retain only deterministic derived classification such as category/subtype/tool/fingerprint.
 
