@@ -99,7 +99,7 @@ Status: accepted.
    - classification summary;
    - representative evidence across root lineages;
    - full evidence at the deepest drill-down.
-6. Repeated adapter diagnostics are aggregated by code/severity/recoverability/message with counts.
+6. Repeated adapter diagnostics are aggregated by code/severity/recoverability with counts; one representative message is retained per group.
 7. Individual `user.message` entries are not included in the semantic Evidence packet; message statistics remain available as aggregates.
 8. Final reports default to `~/.agent-kpt/projects/<hash>/reports/`.
 9. Intermediate workflow files default to project-scoped agent-kpt state/work storage, not the target repository.
