@@ -834,10 +834,30 @@ def _classify_error(*, error_type: str | None, text: str) -> tuple[str, str]:
     ):
         return "rate-limit", "rate-limit"
 
+    normalized_error_type = (error_type or "").lower()
+    if (
+        "timeout" in normalized_error_type
+        or "timedout" in normalized_error_type
+        or any(
+            pattern in haystack
+            for pattern in (
+                "timed out",
+                "timeout error",
+                "request timeout",
+                "operation timeout",
+                "connection timeout",
+                "read timeout",
+                "connect timeout",
+                "deadline exceeded",
+                "etimedout",
+            )
+        )
+    ):
+        return "timeout", "timeout"
+
     rules = [
         ("auth", "unauthorized", ("unauthorized", "authentication", "invalid token", "api key")),
         ("permission", "permission-denied", ("permission denied", "access denied", "eacces", "operation not permitted")),
-        ("timeout", "timeout", ("timed out", "timeout", "deadline exceeded", "etimedout")),
         ("path", "path-quoting", ("path-quoting", "path quoting")),
         ("path", "file-not-found", ("no such file or directory", "file not found", "path not found", "cannot find path", "enoent")),
         ("path", "not-a-directory", ("not a directory", "enotdir")),
