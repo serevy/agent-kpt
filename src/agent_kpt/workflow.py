@@ -312,6 +312,7 @@ def _summarize_diagnostics(items: Any) -> list[dict[str, Any]]:
         code = str(item.get("code") or "unknown")
         severity = str(item.get("severity") or "warning")
         recoverable = bool(item.get("recoverable"))
+        message = str(item.get("message") or code)
         key = (code, severity, recoverable)
         group = grouped.setdefault(
             key,
@@ -320,10 +321,13 @@ def _summarize_diagnostics(items: Any) -> list[dict[str, Any]]:
                 "severity": severity,
                 "recoverable": recoverable,
                 "count": 0,
-                "message": str(item.get("message") or code),
+                "message": message,
+                "messages": [],
             },
         )
         group["count"] += 1
+        if message not in group["messages"] and len(group["messages"]) < 3:
+            group["messages"].append(message)
 
     return sorted(
         grouped.values(),
