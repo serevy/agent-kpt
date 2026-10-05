@@ -96,7 +96,8 @@ Keep the surface small:
 - at most 3 trends;
 - no score / grade / rank / rating;
 - details retain raw-vs-deduplicated recurrence and evidence;
-- error Evidence copies `kind`, `session_id`, `category`, `subtype`, and `tool` from the analysis packet when available.
+- error Evidence copies `kind`, `session_id`, `category`, `subtype`, and `tool` from the analysis packet when available;
+- include all packet error Evidence in `details.evidence`; the deterministic renderer groups it and selects representatives.
 
 Translate internal facts into plain meaning. A worker should not need to understand `root_lineage_id`.
 
