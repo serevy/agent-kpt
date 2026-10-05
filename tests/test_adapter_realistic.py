@@ -122,6 +122,20 @@ class ClaudeCodeRealisticAdapterTests(unittest.TestCase):
         )
         self.assertEqual((category, subtype), ("path", "file-not-found"))
 
+    def test_timeout_word_inside_path_is_not_timeout(self):
+        category, subtype = _classify_error(
+            error_type=None,
+            text="/tmp/timeout-results/x: No such file or directory",
+        )
+        self.assertEqual((category, subtype), ("path", "file-not-found"))
+
+    def test_timeout_error_type_is_timeout(self):
+        category, subtype = _classify_error(
+            error_type="TimeoutError",
+            text="request failed",
+        )
+        self.assertEqual((category, subtype), ("timeout", "timeout"))
+
     def test_http_429_is_rate_limit(self):
         category, subtype = _classify_error(
             error_type=None,
