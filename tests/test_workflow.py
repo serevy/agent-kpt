@@ -38,6 +38,18 @@ class WorkflowTests(unittest.TestCase):
                         "message": {"content": "SECRET prompt"},
                     },
                     {
+                        "type": "user",
+                        "uuid": "missing-ts-1",
+                        "cwd": str(project),
+                        "message": {"content": "ignored"},
+                    },
+                    {
+                        "type": "user",
+                        "uuid": "missing-ts-2",
+                        "cwd": str(project),
+                        "message": {"content": "ignored"},
+                    },
+                    {
                         "type": "assistant",
                         "uuid": "a-main",
                         "requestId": "req-main",
@@ -61,6 +73,15 @@ class WorkflowTests(unittest.TestCase):
                                 }
                             ],
                         },
+                    },
+                    {
+                        "type": "tool_error",
+                        "uuid": "err-main",
+                        "cwd": str(project),
+                        "timestamp": "2026-09-28T00:00:03Z",
+                        "version": "2.1.synthetic",
+                        "tool": "Bash",
+                        "message": "No such file or directory: SECRET/private/path",
                     },
                 ],
             )
@@ -97,7 +118,22 @@ class WorkflowTests(unittest.TestCase):
                 self.assertEqual(packet["signals"]["subagent_types"]["Explore"], 1)
                 self.assertEqual(packet["signals"]["tokens"]["cache_read_percent"], 88.2)
                 self.assertFalse(packet["privacy"]["raw_prompt_text_persisted"])
-                self.assertNotIn("SECRET", json.dumps(packet, ensure_ascii=False))
+                self.assertFalse(packet["privacy"]["raw_error_text_persisted"])
+                serialized_packet = json.dumps(packet, ensure_ascii=False)
+                self.assertNotIn("SECRET", serialized_packet)
+                self.assertNotIn("user.message", {item["kind"] for item in packet["evidence"]})
+
+                error_evidence = next(item for item in packet["evidence"] if item["kind"] == "error")
+                self.assertEqual(error_evidence["category"], "path")
+                self.assertEqual(error_evidence["subtype"], "file-not-found")
+                self.assertEqual(error_evidence["tool"], "Bash")
+                self.assertEqual(packet["signals"]["errors"]["groups"][0]["category"], "path")
+
+                missing_ts = next(
+                    item for item in packet["diagnostics"]
+                    if item["code"] == "missing-event-timestamp"
+                )
+                self.assertEqual(missing_ts["count"], 2)
 
                 evidence = next(
                     item for item in packet["evidence"] if item["kind"] == "subagent.invoke"
