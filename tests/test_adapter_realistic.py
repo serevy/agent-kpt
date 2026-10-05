@@ -109,7 +109,7 @@ class ClaudeCodeRealisticAdapterTests(unittest.TestCase):
             self.assertEqual(errors[0]["payload"]["category"], "path")
             self.assertEqual(errors[0]["payload"]["subtype"], "path-quoting")
             self.assertEqual(errors[0]["payload"]["tool"], "Bash")
-            self.assertEqual(errors[0]["fingerprint"], "error:path:path-quoting")
+            self.assertEqual(errors[0]["fingerprint"], "error:path-quoting")
 
             serialized = json.dumps(result, ensure_ascii=False)
             self.assertNotIn("SECRET", serialized)
