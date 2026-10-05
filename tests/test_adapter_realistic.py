@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from agent_kpt.adapters.claude_code import ingest_paths
+from agent_kpt.adapters.claude_code import _classify_error, _extract_error_text, ingest_paths
 
 
 def write_jsonl(path: Path, records):
@@ -113,6 +113,28 @@ class ClaudeCodeRealisticAdapterTests(unittest.TestCase):
 
             serialized = json.dumps(result, ensure_ascii=False)
             self.assertNotIn("SECRET", serialized)
+
+
+    def test_429_inside_path_is_not_rate_limit(self):
+        category, subtype = _classify_error(
+            error_type=None,
+            text="/tmp/build-4290/x: No such file or directory",
+        )
+        self.assertEqual((category, subtype), ("path", "file-not-found"))
+
+    def test_http_429_is_rate_limit(self):
+        category, subtype = _classify_error(
+            error_type=None,
+            text="HTTP status 429: request rejected",
+        )
+        self.assertEqual((category, subtype), ("rate-limit", "rate-limit"))
+
+    def test_deep_error_payload_is_bounded(self):
+        value = "leaf"
+        for _ in range(100):
+            value = {"message": [value]}
+        extracted = _extract_error_text(value, max_depth=8)
+        self.assertIsInstance(extracted, str)
 
 
 if __name__ == "__main__":
