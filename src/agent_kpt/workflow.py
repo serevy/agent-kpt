@@ -304,30 +304,31 @@ def _error_signals(result: Mapping[str, Any]) -> dict[str, Any]:
 def _summarize_diagnostics(items: Any) -> list[dict[str, Any]]:
     if not isinstance(items, list):
         return []
-    grouped: dict[tuple[str, str, bool, str], int] = Counter()
+
+    grouped: dict[tuple[str, str, bool], dict[str, Any]] = {}
     for item in items:
         if not isinstance(item, Mapping):
             continue
         code = str(item.get("code") or "unknown")
         severity = str(item.get("severity") or "warning")
         recoverable = bool(item.get("recoverable"))
-        message = str(item.get("message") or code)
-        grouped[(code, severity, recoverable, message)] += 1
-
-    return [
-        {
-            "code": code,
-            "severity": severity,
-            "recoverable": recoverable,
-            "count": count,
-            "message": message,
-        }
-        for (code, severity, recoverable, message), count in sorted(
-            grouped.items(),
-            key=lambda pair: (-pair[1], pair[0][0], pair[0][1]),
+        key = (code, severity, recoverable)
+        group = grouped.setdefault(
+            key,
+            {
+                "code": code,
+                "severity": severity,
+                "recoverable": recoverable,
+                "count": 0,
+                "message": str(item.get("message") or code),
+            },
         )
-    ]
+        group["count"] += 1
 
+    return sorted(
+        grouped.values(),
+        key=lambda item: (-item["count"], item["code"], item["severity"]),
+    )
 
 def _environment_summary(result: Mapping[str, Any]) -> dict[str, Any]:
     models: set[str] = set()
