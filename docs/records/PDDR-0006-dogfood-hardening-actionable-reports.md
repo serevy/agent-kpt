@@ -4,7 +4,7 @@ title: Dogfood hardening for privacy-safe actionable reports
 decision_date: 2026-10-06
 recorded_date: 2026-10-06
 decision_status: accepted
-delivery_status: in-progress
+delivery_status: validated
 scope:
   - product
   - project
@@ -110,17 +110,20 @@ The repository owner approved this direction from real dogfood feedback on 2026-
 
 ## Delivery and validation
 
-In progress in Issue #18.
+Validated in PR #19.
 
-Expected validation:
+Evidence:
 
-- no target-repository pollution during the normal Skill workflow;
-- classified error evidence contains no synthetic secret text;
+- the full suite passes with 24 tests;
+- GitHub Actions passes on Ubuntu (Python 3.10 and 3.13), Windows (Python 3.11), and macOS (Python 3.11);
+- PDDR validation passes;
+- storage regressions verify default report/work paths stay outside the target repository and `AGENT_KPT_REPORT_DIR` overrides reports;
+- synthetic secret text is absent from classified error evidence and the analysis packet;
 - repeated diagnostics collapse to counted summaries;
-- user-message Evidence is absent while aggregate stats remain;
-- HTML/Markdown show classification summary before representative/full Evidence;
-- Python runtime guard is actionable;
-- existing lineage and evidence-bound Ledger regressions remain green across Windows/macOS/Linux.
+- individual user-message Evidence is absent while aggregate message statistics remain;
+- HTML/Markdown expose classification summary, representative Evidence, then full Evidence;
+- the launcher rejects Python < 3.10 before importing the application;
+- the original explicit error fingerprint/golden recurrence contract remains unchanged.
 
 ## Consequences
 
