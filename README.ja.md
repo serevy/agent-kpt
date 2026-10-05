@@ -222,7 +222,7 @@ Ledger、workflow中間ファイル、レポートは既定で対象Projectの�
   reports/
 ```
 
-state全体の保存場所を変えたい場合は `AGENT_KPT_HOME`、最終レポートだけ変えたい場合は `AGENT_KPT_REPORT_DIR` を使えます。
+state全体の保存場所を変えたい場合は `AGENT_KPT_HOME`、最終レポートだけ変えたい場合は `AGENT_KPT_REPORT_DIR` を使えます。`AGENT_KPT_REPORT_DIR` は明示overrideなので、対象Repository内を指定した場合は意図どおり `git status` にレポートが出る可能性があります。
 
 既定のanalysis packetには、生のprompt本文、assistant本文、tool input / output、エラー本文を保存しません。エラー本文は利用者のローカル環境で一時的に分類へ使い、`category / subtype / tool / fingerprint` などの派生情報だけを保持します。
 
