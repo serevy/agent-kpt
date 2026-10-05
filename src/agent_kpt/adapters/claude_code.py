@@ -633,7 +633,11 @@ def _user_events(
                 )
                 payload["category"] = category
                 payload["subtype"] = subtype
-                fingerprint = _classified_error_fingerprint(category, subtype)
+                fingerprint = (
+                    _error_fingerprint(error_type)
+                    if error_type
+                    else _classified_error_fingerprint(category, subtype)
+                )
             events.append(
                 _event(
                     session_id,
@@ -707,7 +711,11 @@ def _tool_result_event(
         )
         payload["category"] = category
         payload["subtype"] = subtype
-        fingerprint = _classified_error_fingerprint(category, subtype)
+        fingerprint = (
+                    _error_fingerprint(error_type)
+                    if error_type
+                    else _classified_error_fingerprint(category, subtype)
+                )
     return _event(
         session_id,
         record,
@@ -763,7 +771,11 @@ def _tool_error_event(
         },
         source_name,
         suffix="tool-error",
-        fingerprint=_classified_error_fingerprint(category, subtype),
+        fingerprint=(
+            _error_fingerprint(error_type)
+            if error_type
+            else _classified_error_fingerprint(category, subtype)
+        ),
     )
 
 
