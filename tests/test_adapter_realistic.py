@@ -104,6 +104,13 @@ class ClaudeCodeRealisticAdapterTests(unittest.TestCase):
             self.assertEqual(skills[0]["payload"]["name"], "advisor")
             self.assertEqual(commands[0]["payload"]["name"], "review")
 
+            errors = [e for e in result["events"] if e["type"] == "error"]
+            self.assertEqual(len(errors), 1)
+            self.assertEqual(errors[0]["payload"]["category"], "path")
+            self.assertEqual(errors[0]["payload"]["subtype"], "path-quoting")
+            self.assertEqual(errors[0]["payload"]["tool"], "Bash")
+            self.assertEqual(errors[0]["fingerprint"], "error:path:path-quoting")
+
             serialized = json.dumps(result, ensure_ascii=False)
             self.assertNotIn("SECRET", serialized)
 
