@@ -141,6 +141,12 @@ Accepted constraints:
 
 Revisit if deterministic classification leaves too many important failures as unknown, if users need project-local reports by default, or if a future explicit local-only semantic error-analysis mode can preserve the same safety boundary.
 
+## Evidence
+
+- Issue #14 real weekly dogfood feedback
+- Issue #18 v0.1 hardening tracker
+- PR #19 implementation and hosted validation
+
 ## Related records
 
 - PDDR-0003: Stateful improvement ledger lifecycle
