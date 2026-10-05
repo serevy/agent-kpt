@@ -4,7 +4,7 @@ title: Dogfood hardening for privacy-safe actionable reports
 decision_date: 2026-10-06
 recorded_date: 2026-10-06
 decision_status: accepted
-delivery_status: validated
+delivery_status: implemented
 scope:
   - product
   - project
@@ -99,7 +99,7 @@ Status: accepted.
    - classification summary;
    - representative evidence across root lineages;
    - full evidence at the deepest drill-down.
-6. Repeated adapter diagnostics are aggregated by code/severity/recoverability with counts; one representative message is retained per group.
+6. Repeated adapter diagnostics are aggregated by code/severity/recoverability with counts; up to three distinct representative messages are retained per group.
 7. Individual `user.message` entries are not included in the semantic Evidence packet; message statistics remain available as aggregates.
 8. Final reports default to `~/.agent-kpt/projects/<hash>/reports/`.
 9. Intermediate workflow files default to project-scoped agent-kpt state/work storage, not the target repository.
@@ -110,12 +110,11 @@ The repository owner approved this direction from real dogfood feedback on 2026-
 
 ## Delivery and validation
 
-Validated in PR #19.
+Implemented in PR #19. Hosted regression validation is green; real-environment re-dogfood in Issue #14 remains pending before this record is promoted to `validated`.
 
-Evidence:
+Evidence so far:
 
-- the full suite passes with 24 tests;
-- GitHub Actions passes on Ubuntu (Python 3.10 and 3.13), Windows (Python 3.11), and macOS (Python 3.11);
+- the full test suite passes on Ubuntu (Python 3.10 and 3.13), Windows (Python 3.11), and macOS (Python 3.11);
 - PDDR validation passes;
 - storage regressions verify default report/work paths stay outside the target repository and `AGENT_KPT_REPORT_DIR` overrides reports;
 - synthetic secret text is absent from classified error evidence and the analysis packet;
