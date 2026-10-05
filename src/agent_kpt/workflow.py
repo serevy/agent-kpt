@@ -383,9 +383,13 @@ def _evidence(result: Mapping[str, Any]) -> list[dict[str, Any]]:
     session_by_id = {s.get("id"): s for s in result.get("sessions", [])}
     out: list[dict[str, Any]] = []
     for event in result.get("events", []):
-        if event.get("history_role") not in {"observed", "inherited"}:
-            continue
         event_type = event.get("type")
+        history_role = event.get("history_role")
+        if event_type == "error":
+            if history_role not in {"observed", "inherited", "replayed"}:
+                continue
+        elif history_role not in {"observed", "inherited"}:
+            continue
         if not (
             event.get("fingerprint")
             or event_type in {"skill.invoke", "command.invoke", "subagent.invoke"}
@@ -397,6 +401,7 @@ def _evidence(result: Mapping[str, Any]) -> list[dict[str, Any]]:
         evidence = {
             "id": event.get("id"),
             "kind": event_type,
+            "session_id": event.get("session_id"),
             "fingerprint": event.get("fingerprint"),
             "observed_at": event.get("timestamp"),
             "root_lineage_id": session.get("root_lineage_id"),
