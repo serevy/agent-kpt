@@ -14,10 +14,15 @@ class StoragePathTests(unittest.TestCase):
             project = base / "project"
             state = base / "state"
             project.mkdir()
+            env = {
+                key: value
+                for key, value in os.environ.items()
+                if key != "AGENT_KPT_REPORT_DIR"
+            }
             with patch.dict(
                 os.environ,
-                {"AGENT_KPT_HOME": str(state)},
-                clear=False,
+                {**env, "AGENT_KPT_HOME": str(state)},
+                clear=True,
             ):
                 paths = project_paths(project)
             self.assertTrue(Path(paths["state_dir"]).is_relative_to(state))
