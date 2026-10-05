@@ -47,17 +47,23 @@ python "${CLAUDE_PLUGIN_ROOT}/scripts/agent-kpt.py"
 
 No project files are modified to install Python dependencies.
 
-## Persistent state
+## Persistent state and reports
 
-Ledger and last analysis packet live under:
+Ledger, the last analysis packet, workflow temp files, and default reports live outside the target repository:
 
 ```text
 ~/.agent-kpt/projects/<hashed-project-path>/
+  ledger.json
+  last-packet.json
+  work/
+  reports/
 ```
 
-Set `AGENT_KPT_HOME` to override the base directory.
+Set `AGENT_KPT_HOME` to override the base state directory.
 
-The project path is hashed before it becomes a state-directory name.
+Set `AGENT_KPT_REPORT_DIR` to override the final report directory.
+
+The project path is hashed before it becomes a state-directory name, so normal weekly/monthly runs do not add untracked agent-kpt files to the target Git repository.
 
 ## Privacy
 
@@ -70,6 +76,8 @@ The default analysis packet stores:
 - evidence IDs and source filenames;
 - environment metadata.
 
-It does not persist raw prompt text, assistant text, or raw tool input/output.
+It does not persist raw prompt text, assistant text, raw tool input/output, or raw error text.
+
+For errors, the adapter may inspect raw text transiently on the user's machine and retain only deterministic derived classification such as category/subtype/tool/fingerprint. Repeated adapter diagnostics are aggregated before semantic composition, and individual user-message records stay out of detailed Evidence.
 
 A future richer semantic mode must be an explicit opt-in rather than silently widening this boundary.
