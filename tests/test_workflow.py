@@ -7,7 +7,12 @@ from pathlib import Path
 from unittest.mock import patch
 
 from agent_kpt.review import apply_review_actions
-from agent_kpt.workflow import build_analysis_packet, discover_claude_code_paths, ledger_status
+from agent_kpt.workflow import (
+    _summarize_diagnostics,
+    build_analysis_packet,
+    discover_claude_code_paths,
+    ledger_status,
+)
 
 
 def write_jsonl(path: Path, records):
@@ -16,6 +21,29 @@ def write_jsonl(path: Path, records):
 
 
 class WorkflowTests(unittest.TestCase):
+    def test_diagnostics_group_by_code_with_bounded_message_samples(self):
+        diagnostics = [
+            {
+                "code": "unsupported-record-shape",
+                "severity": "warning",
+                "recoverable": True,
+                "message": f"Unknown record type '{name}' was skipped.",
+            }
+            for name in ("a", "b", "c", "d", "e")
+        ]
+        summary = _summarize_diagnostics(diagnostics)
+        self.assertEqual(len(summary), 1)
+        self.assertEqual(summary[0]["count"], 5)
+        self.assertEqual(len(summary[0]["messages"]), 3)
+        self.assertEqual(
+            summary[0]["messages"],
+            [
+                "Unknown record type 'a' was skipped.",
+                "Unknown record type 'b' was skipped.",
+                "Unknown record type 'c' was skipped.",
+            ],
+        )
+
     def test_discovery_packet_and_local_ledger(self):
         with tempfile.TemporaryDirectory() as tmp:
             base = Path(tmp)
