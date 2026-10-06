@@ -130,17 +130,16 @@ def add_intervention(
         raise ValueError("intervention summary must not be empty")
 
     interventions = problem.setdefault("interventions", [])
-    existing = next(
-        (
-            item
-            for item in interventions
-            if item.get("kind") == kind
-            and _normalize_intervention_summary(str(item.get("summary") or ""))
-            == normalized_summary
-        ),
-        None,
-    )
-    if existing is not None:
+    matches = [
+        item
+        for item in interventions
+        if item.get("kind") == kind
+        and _normalize_intervention_summary(str(item.get("summary") or ""))
+        == normalized_summary
+    ]
+    if matches:
+        existing = _select_intervention_for_reproposal(matches)
+        _coalesce_pristine_duplicates(problem, existing, matches)
         _record_reproposal(existing, proposed_at)
         return existing
 
@@ -172,33 +171,96 @@ def add_intervention(
     return intervention
 
 
-def _record_reproposal(intervention: MutableMapping[str, Any], proposed_at: str) -> None:
-    original = intervention.get("proposed_at")
-    original_time = (
-        _normalize_time(original)
-        if isinstance(original, str) and original
-        else proposed_at
-    )
+def _select_intervention_for_reproposal(
+    matches: list[MutableMapping[str, Any]],
+) -> MutableMapping[str, Any]:
+    authoritative = [
+        item
+        for item in matches
+        if item.get("decision") != "proposed" or item.get("status") != "not-started"
+    ]
+    if len(authoritative) == 1:
+        return authoritative[0]
+    pool = authoritative if authoritative else matches
+    return min(pool, key=_intervention_first_proposed_at)
+
+
+def _coalesce_pristine_duplicates(
+    problem: MutableMapping[str, Any],
+    canonical: MutableMapping[str, Any],
+    matches: list[MutableMapping[str, Any]],
+) -> None:
+    mergeable = [
+        item
+        for item in matches
+        if item is not canonical
+        and item.get("decision") == "proposed"
+        and item.get("status") == "not-started"
+    ]
+    if not mergeable:
+        return
+
+    for duplicate in mergeable:
+        _merge_proposal_history(canonical, duplicate)
+
+    mergeable_object_ids = {id(item) for item in mergeable}
+    problem["interventions"] = [
+        item
+        for item in problem.get("interventions", [])
+        if id(item) not in mergeable_object_ids
+    ]
+
+
+def _merge_proposal_history(
+    canonical: MutableMapping[str, Any],
+    duplicate: Mapping[str, Any],
+) -> None:
+    canonical_first, canonical_last, canonical_count = _proposal_history(canonical)
+    duplicate_first, duplicate_last, duplicate_count = _proposal_history(duplicate)
+
+    first = min(canonical_first, duplicate_first)
+    last = max(canonical_last, duplicate_last)
+    canonical["proposed_at"] = first
+    canonical["first_proposed_at"] = first
+    canonical["last_proposed_at"] = last
+    canonical["proposal_count"] = canonical_count + duplicate_count
+
+
+def _proposal_history(intervention: Mapping[str, Any]) -> tuple[str, str, int]:
+    original_raw = intervention.get("proposed_at")
+    if not isinstance(original_raw, str) or not original_raw:
+        raise ValueError("intervention proposed_at is required")
+    original = _normalize_time(original_raw)
+
     first_raw = intervention.get("first_proposed_at")
     first = (
         _normalize_time(first_raw)
         if isinstance(first_raw, str) and first_raw
-        else original_time
+        else original
     )
     last_raw = intervention.get("last_proposed_at")
     last = (
         _normalize_time(last_raw)
         if isinstance(last_raw, str) and last_raw
-        else original_time
+        else original
     )
-
-    intervention["first_proposed_at"] = min(first, original_time, proposed_at)
-    intervention["last_proposed_at"] = max(last, proposed_at)
-
     count = intervention.get("proposal_count")
     proposal_count = (
         count if isinstance(count, int) and not isinstance(count, bool) and count >= 1 else 1
     )
+    return min(first, original), max(last, original), proposal_count
+
+
+def _intervention_first_proposed_at(intervention: Mapping[str, Any]) -> str:
+    first, _, _ = _proposal_history(intervention)
+    return first
+
+
+def _record_reproposal(intervention: MutableMapping[str, Any], proposed_at: str) -> None:
+    first, last, proposal_count = _proposal_history(intervention)
+    intervention["proposed_at"] = min(first, proposed_at)
+    intervention["first_proposed_at"] = min(first, proposed_at)
+    intervention["last_proposed_at"] = max(last, proposed_at)
     if proposed_at > last:
         proposal_count += 1
     intervention["proposal_count"] = proposal_count
