@@ -122,6 +122,149 @@ class LedgerTests(unittest.TestCase):
         self.assertNotEqual(changed["id"], first["id"])
         self.assertEqual(len(problem["interventions"]), 2)
 
+    def test_existing_legacy_duplicate_proposals_are_coalesced_safely(self):
+        ledger = new_ledger()
+        problem = upsert_problem(
+            ledger,
+            fingerprint="error:legacy-duplicates",
+            title="Legacy duplicate proposals",
+            target_type="workflow",
+            observed_at="2026-09-21T09:02:00Z",
+            evidence=self._evidence("root-a", "legacy-duplicates"),
+        )
+        base = {
+            "kind": "workflow",
+            "summary": "Check path existence before execution",
+            "decision": "proposed",
+            "status": "not-started",
+            "applied_at": None,
+            "validated_at": None,
+            "retired_at": None,
+            "validated_environment": {},
+            "retire_reason": None,
+        }
+        problem["interventions"].extend(
+            [
+                {
+                    **base,
+                    "id": "intervention-old-week-1",
+                    "proposed_at": "2026-10-01T10:00:00Z",
+                },
+                {
+                    **base,
+                    "id": "intervention-old-week-2",
+                    "proposed_at": "2026-10-08T10:00:00Z",
+                },
+            ]
+        )
+
+        reused = add_intervention(
+            problem,
+            kind="workflow",
+            summary="check path existence before execution",
+            proposed_at="2026-10-08T10:00:00Z",
+        )
+        self.assertEqual(len(problem["interventions"]), 1)
+        self.assertEqual(reused["id"], "intervention-old-week-1")
+        self.assertEqual(reused["proposed_at"], "2026-10-01T10:00:00Z")
+        self.assertEqual(reused["first_proposed_at"], "2026-10-01T10:00:00Z")
+        self.assertEqual(reused["last_proposed_at"], "2026-10-08T10:00:00Z")
+        self.assertEqual(reused["proposal_count"], 2)
+
+        later = add_intervention(
+            problem,
+            kind="workflow",
+            summary="Check path existence before execution",
+            proposed_at="2026-10-15T10:00:00Z",
+        )
+        self.assertEqual(len(problem["interventions"]), 1)
+        self.assertEqual(later["proposal_count"], 3)
+        self.assertEqual(later["last_proposed_at"], "2026-10-15T10:00:00Z")
+
+    def test_legacy_proposed_duplicate_folds_into_human_decided_intervention(self):
+        ledger = new_ledger()
+        problem = upsert_problem(
+            ledger,
+            fingerprint="error:legacy-human-decision",
+            title="Legacy decision plus duplicate",
+            target_type="workflow",
+            observed_at="2026-09-21T09:02:00Z",
+            evidence=self._evidence("root-a", "legacy-human"),
+        )
+        decided = {
+            "id": "intervention-decided",
+            "kind": "workflow",
+            "summary": "Check path existence",
+            "decision": "rejected",
+            "status": "not-started",
+            "proposed_at": "2026-10-01T10:00:00Z",
+            "applied_at": None,
+            "validated_at": None,
+            "retired_at": None,
+            "validated_environment": {},
+            "retire_reason": None,
+        }
+        duplicate = {
+            **decided,
+            "id": "intervention-duplicate",
+            "decision": "proposed",
+            "proposed_at": "2026-10-08T10:00:00Z",
+        }
+        problem["interventions"].extend([decided, duplicate])
+
+        reused = add_intervention(
+            problem,
+            kind="workflow",
+            summary="check path existence",
+            proposed_at="2026-10-08T10:00:00Z",
+        )
+        self.assertEqual(len(problem["interventions"]), 1)
+        self.assertEqual(reused["id"], "intervention-decided")
+        self.assertEqual(reused["decision"], "rejected")
+        self.assertEqual(reused["proposal_count"], 2)
+
+    def test_conflicting_human_decisions_are_not_auto_coalesced(self):
+        ledger = new_ledger()
+        problem = upsert_problem(
+            ledger,
+            fingerprint="error:conflicting-decisions",
+            title="Conflicting legacy decisions",
+            target_type="workflow",
+            observed_at="2026-09-21T09:02:00Z",
+            evidence=self._evidence("root-a", "conflicting"),
+        )
+        for intervention_id, decision, proposed_at in (
+            ("intervention-accepted", "accepted", "2026-10-01T10:00:00Z"),
+            ("intervention-rejected", "rejected", "2026-10-08T10:00:00Z"),
+        ):
+            problem["interventions"].append(
+                {
+                    "id": intervention_id,
+                    "kind": "workflow",
+                    "summary": "Check path existence",
+                    "decision": decision,
+                    "status": "not-started",
+                    "proposed_at": proposed_at,
+                    "applied_at": None,
+                    "validated_at": None,
+                    "retired_at": None,
+                    "validated_environment": {},
+                    "retire_reason": None,
+                }
+            )
+
+        add_intervention(
+            problem,
+            kind="workflow",
+            summary="check path existence",
+            proposed_at="2026-10-15T10:00:00Z",
+        )
+        self.assertEqual(len(problem["interventions"]), 2)
+        self.assertEqual(
+            {item["decision"] for item in problem["interventions"]},
+            {"accepted", "rejected"},
+        )
+
     def test_reproposal_preserves_decision_status_and_legacy_id(self):
         for decision in ("accepted", "rejected", "deferred"):
             with self.subTest(decision=decision):
