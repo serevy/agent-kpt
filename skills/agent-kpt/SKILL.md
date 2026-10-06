@@ -50,6 +50,8 @@ Read the returned JSON and use exactly:
 - `work_dir` for intermediate JSON files;
 - `report_dir` for final HTML/Markdown reports.
 
+The `paths` command creates the state/work/report directories before returning them. If another caller bypasses `paths`, it must create the chosen work/report directories before writing.
+
 Do not write agent-kpt temp/report files into the target repository.
 
 The default report directory is under `~/.agent-kpt/projects/<hash>/reports/`.
@@ -112,6 +114,15 @@ For error-heavy reports, do not repeat dozens of identical “tool error” rows
 3. the full Evidence list only at the deepest drill-down.
 
 Use the derived classification to make the Problem / Next Try actionable. Do not invent a more specific cause than the packet supports.
+
+If `unknown/unknown` is the dominant error group, treat root cause as insufficient evidence:
+
+- use `OBSERVE` / `WATCH` style wording rather than claiming a concrete cause;
+- do not create a durable Ledger Problem from unknown-only evidence;
+- explicitly mention limited classifier coverage;
+- prefer one observation/classification-oriented Next Try over a speculative fix.
+
+A smaller classified subgroup may still become a Problem when its own evidence is strong and lineage-aware.
 
 ## Create ledger actions
 
