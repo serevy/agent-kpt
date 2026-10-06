@@ -44,7 +44,13 @@ Re-applying the exact same report period is idempotent. A later report period in
 
 Re-proposal never resets human authority or delivery state: an already accepted, rejected, deferred, applied, effective, or retired intervention remains in that state. A materially different kind/summary creates a distinct intervention.
 
-Existing ledgers keep their stored intervention IDs; identity matching is semantic so old timestamp-derived IDs do not need rewriting.
+Existing ledgers keep the canonical stored Intervention ID; identity matching is semantic so old timestamp-derived IDs do not need rewriting.
+
+If an old ledger already contains duplicate semantic Interventions created by the timestamp-based bug, agent-kpt may lazily coalesce only safe duplicates:
+
+- `proposed + not-started` duplicates are folded into one canonical Intervention and converted into proposal history;
+- when one matching Intervention already carries a human decision or progressed status, pristine proposed duplicates fold into that canonical object;
+- conflicting human-decided duplicates are preserved for manual resolution rather than silently merged.
 
 ## Recurrence
 
