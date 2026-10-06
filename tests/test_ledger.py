@@ -69,6 +69,138 @@ class LedgerTests(unittest.TestCase):
         self.assertEqual(problem["independent_root_lineages"], 2)
         self.assertEqual(problem["evidence"][0]["source"]["event_id"], "event-a")
 
+    def test_reproposal_reuses_intervention_and_is_idempotent(self):
+        ledger = new_ledger()
+        problem = upsert_problem(
+            ledger,
+            fingerprint="error:path-quoting",
+            title="Path quoting failure",
+            target_type="workflow",
+            observed_at="2026-09-21T09:02:00Z",
+            evidence=self._evidence("root-a", "event-a"),
+        )
+
+        first = add_intervention(
+            problem,
+            kind="workflow",
+            summary="Normalize   quoted paths before tool execution",
+            proposed_at="2026-10-01T10:00:00Z",
+        )
+        replay = add_intervention(
+            problem,
+            kind="workflow",
+            summary="normalize quoted paths before tool execution",
+            proposed_at="2026-10-01T10:00:00Z",
+        )
+
+        self.assertEqual(len(problem["interventions"]), 1)
+        self.assertEqual(replay["id"], first["id"])
+        self.assertEqual(first["proposal_count"], 1)
+        self.assertEqual(first["first_proposed_at"], "2026-10-01T10:00:00Z")
+        self.assertEqual(first["last_proposed_at"], "2026-10-01T10:00:00Z")
+        self.assertEqual(first["proposed_at"], "2026-10-01T10:00:00Z")
+
+        later = add_intervention(
+            problem,
+            kind="workflow",
+            summary="Normalize quoted paths before tool execution",
+            proposed_at="2026-10-08T10:00:00Z",
+        )
+        self.assertEqual(len(problem["interventions"]), 1)
+        self.assertEqual(later["id"], first["id"])
+        self.assertEqual(later["proposal_count"], 2)
+        self.assertEqual(later["first_proposed_at"], "2026-10-01T10:00:00Z")
+        self.assertEqual(later["last_proposed_at"], "2026-10-08T10:00:00Z")
+        self.assertEqual(later["proposed_at"], "2026-10-01T10:00:00Z")
+
+        changed = add_intervention(
+            problem,
+            kind="workflow",
+            summary="Use an absolute path preflight instead",
+            proposed_at="2026-10-08T10:00:00Z",
+        )
+        self.assertNotEqual(changed["id"], first["id"])
+        self.assertEqual(len(problem["interventions"]), 2)
+
+    def test_reproposal_preserves_decision_status_and_legacy_id(self):
+        for decision in ("accepted", "rejected", "deferred"):
+            with self.subTest(decision=decision):
+                ledger = new_ledger()
+                problem = upsert_problem(
+                    ledger,
+                    fingerprint=f"error:path-quoting:{decision}",
+                    title="Path quoting failure",
+                    target_type="workflow",
+                    observed_at="2026-09-21T09:02:00Z",
+                    evidence=self._evidence("root-a", f"event-{decision}"),
+                )
+                intervention = add_intervention(
+                    problem,
+                    kind="workflow",
+                    summary="Normalize quoted paths",
+                    proposed_at="2026-10-01T10:00:00Z",
+                )
+                set_intervention_decision(problem, intervention["id"], decision)
+                if decision == "accepted":
+                    set_intervention_status(
+                        problem,
+                        intervention["id"],
+                        "applied",
+                        at="2026-10-01T11:00:00Z",
+                    )
+
+                repeated = add_intervention(
+                    problem,
+                    kind="workflow",
+                    summary=" normalize   quoted paths ",
+                    proposed_at="2026-10-08T10:00:00Z",
+                    decision="proposed",
+                )
+                self.assertEqual(repeated["decision"], decision)
+                self.assertEqual(
+                    repeated["status"],
+                    "applied" if decision == "accepted" else "not-started",
+                )
+                self.assertEqual(repeated["proposal_count"], 2)
+                self.assertEqual(len(problem["interventions"]), 1)
+
+        ledger = new_ledger()
+        problem = upsert_problem(
+            ledger,
+            fingerprint="error:legacy-intervention",
+            title="Legacy intervention identity",
+            target_type="workflow",
+            observed_at="2026-09-21T09:02:00Z",
+            evidence=self._evidence("root-a", "legacy-event"),
+        )
+        legacy = {
+            "id": "intervention-legacy123456",
+            "kind": "workflow",
+            "summary": "Normalize quoted paths",
+            "decision": "rejected",
+            "status": "not-started",
+            "proposed_at": "2026-10-01T10:00:00Z",
+            "applied_at": None,
+            "validated_at": None,
+            "retired_at": None,
+            "validated_environment": {},
+            "retire_reason": None,
+        }
+        problem["interventions"].append(legacy)
+
+        repeated = add_intervention(
+            problem,
+            kind="workflow",
+            summary="normalize quoted paths",
+            proposed_at="2026-10-08T10:00:00Z",
+        )
+        self.assertEqual(repeated["id"], "intervention-legacy123456")
+        self.assertEqual(repeated["decision"], "rejected")
+        self.assertEqual(repeated["proposal_count"], 2)
+        self.assertEqual(repeated["first_proposed_at"], "2026-10-01T10:00:00Z")
+        self.assertEqual(repeated["last_proposed_at"], "2026-10-08T10:00:00Z")
+        self.assertEqual(len(problem["interventions"]), 1)
+
     def test_human_decision_intervention_keep_and_graduation(self):
         ledger = new_ledger()
         problem = upsert_problem(
