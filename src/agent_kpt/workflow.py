@@ -114,7 +114,7 @@ def build_analysis_packet(
         "environment_changes": _environment_changes(previous, result),
         "ledger": _ledger_summary(ledger),
         "evidence": _evidence(result),
-        "diagnostics": list(result.get("diagnostics", [])),
+        "diagnostics": _summarize_diagnostics(result.get("diagnostics", [])),
         "report_contract": {
             "max_kpis": 4,
             "max_keep": 3,
@@ -128,6 +128,8 @@ def build_analysis_packet(
             "raw_prompt_text_persisted": False,
             "raw_assistant_text_persisted": False,
             "raw_tool_input_persisted": False,
+            "raw_error_text_persisted": False,
+            "derived_error_classification_retained": True,
         },
     }
     if persist:
@@ -228,6 +230,7 @@ def _signals(result: Mapping[str, Any]) -> dict[str, Any]:
         "skill_invocations": dict(skills.most_common()),
         "slash_commands": dict(commands.most_common()),
         "subagent_types": dict(subagents.most_common()),
+        "errors": _error_signals(result),
         "user_messages": {
             "count": len(message_lengths),
             "avg_chars": round(mean(message_lengths), 1) if message_lengths else 0.0,
@@ -240,6 +243,96 @@ def _signals(result: Mapping[str, Any]) -> dict[str, Any]:
         },
     }
 
+
+def _error_signals(result: Mapping[str, Any]) -> dict[str, Any]:
+    session_by_id = {s.get("id"): s for s in result.get("sessions", [])}
+    groups: dict[tuple[str, str, str], dict[str, Any]] = {}
+    total_raw = 0
+
+    for event in result.get("events", []):
+        if event.get("type") != "error":
+            continue
+        total_raw += 1
+        payload = event.get("payload") if isinstance(event.get("payload"), Mapping) else {}
+        category = str(payload.get("category") or "unknown")
+        subtype = str(payload.get("subtype") or "unknown")
+        tool = str(payload.get("tool") or "unknown")
+        key = (category, subtype, tool)
+        item = groups.setdefault(
+            key,
+            {
+                "category": category,
+                "subtype": subtype,
+                "tool": tool,
+                "raw_occurrences": 0,
+                "_sessions": set(),
+                "_lineages": set(),
+            },
+        )
+        item["raw_occurrences"] += 1
+        session_id = event.get("session_id")
+        if isinstance(session_id, str):
+            item["_sessions"].add(session_id)
+            session = session_by_id.get(session_id, {})
+            root = session.get("root_lineage_id")
+            if isinstance(root, str):
+                item["_lineages"].add(root)
+
+    output = []
+    for item in groups.values():
+        output.append(
+            {
+                "category": item["category"],
+                "subtype": item["subtype"],
+                "tool": item["tool"],
+                "raw_occurrences": item["raw_occurrences"],
+                "unique_sessions": len(item["_sessions"]),
+                "unique_root_lineages": len(item["_lineages"]),
+            }
+        )
+    output.sort(
+        key=lambda item: (
+            -item["raw_occurrences"],
+            item["category"],
+            item["subtype"],
+            item["tool"],
+        )
+    )
+    return {"total_raw_occurrences": total_raw, "groups": output}
+
+
+def _summarize_diagnostics(items: Any) -> list[dict[str, Any]]:
+    if not isinstance(items, list):
+        return []
+
+    grouped: dict[tuple[str, str, bool], dict[str, Any]] = {}
+    for item in items:
+        if not isinstance(item, Mapping):
+            continue
+        code = str(item.get("code") or "unknown")
+        severity = str(item.get("severity") or "warning")
+        recoverable = bool(item.get("recoverable"))
+        message = str(item.get("message") or code)
+        key = (code, severity, recoverable)
+        group = grouped.setdefault(
+            key,
+            {
+                "code": code,
+                "severity": severity,
+                "recoverable": recoverable,
+                "count": 0,
+                "message": message,
+                "messages": [],
+            },
+        )
+        group["count"] += 1
+        if message not in group["messages"] and len(group["messages"]) < 3:
+            group["messages"].append(message)
+
+    return sorted(
+        grouped.values(),
+        key=lambda item: (-item["count"], item["code"], item["severity"]),
+    )
 
 def _environment_summary(result: Mapping[str, Any]) -> dict[str, Any]:
     models: set[str] = set()
@@ -295,40 +388,51 @@ def _evidence(result: Mapping[str, Any]) -> list[dict[str, Any]]:
     session_by_id = {s.get("id"): s for s in result.get("sessions", [])}
     out: list[dict[str, Any]] = []
     for event in result.get("events", []):
-        if event.get("history_role") not in {"observed", "inherited"}:
+        event_type = event.get("type")
+        history_role = event.get("history_role")
+        if event_type == "error":
+            if history_role not in {"observed", "inherited", "replayed"}:
+                continue
+        elif history_role not in {"observed", "inherited"}:
             continue
         if not (
             event.get("fingerprint")
-            or event.get("type")
-            in {"skill.invoke", "command.invoke", "subagent.invoke", "user.message"}
+            or event_type in {"skill.invoke", "command.invoke", "subagent.invoke"}
         ):
             continue
+
         session = session_by_id.get(event.get("session_id"), {})
-        out.append(
-            {
-                "id": event.get("id"),
-                "kind": event.get("type"),
-                "fingerprint": event.get("fingerprint"),
-                "observed_at": event.get("timestamp"),
-                "root_lineage_id": session.get("root_lineage_id"),
-                "source": event.get("provenance", {}).get("source"),
-                "source_event_id": event.get("id"),
-                "environment": {
-                    "model": session.get("model", {}).get("name")
-                    if isinstance(session.get("model"), Mapping)
-                    else None,
-                    "model_family": session.get("model", {}).get("family")
-                    if isinstance(session.get("model"), Mapping)
-                    else None,
-                    "harness": session.get("harness", {}).get("name")
-                    if isinstance(session.get("harness"), Mapping)
-                    else None,
-                    "harness_version": session.get("harness", {}).get("version")
-                    if isinstance(session.get("harness"), Mapping)
-                    else None,
-                },
-            }
-        )
+        payload = event.get("payload") if isinstance(event.get("payload"), Mapping) else {}
+        evidence = {
+            "id": event.get("id"),
+            "kind": event_type,
+            "session_id": event.get("session_id"),
+            "fingerprint": event.get("fingerprint"),
+            "observed_at": event.get("timestamp"),
+            "root_lineage_id": session.get("root_lineage_id"),
+            "source": event.get("provenance", {}).get("source"),
+            "source_event_id": event.get("id"),
+            "history_role": event.get("history_role"),
+            "environment": {
+                "model": session.get("model", {}).get("name")
+                if isinstance(session.get("model"), Mapping)
+                else None,
+                "model_family": session.get("model", {}).get("family")
+                if isinstance(session.get("model"), Mapping)
+                else None,
+                "harness": session.get("harness", {}).get("name")
+                if isinstance(session.get("harness"), Mapping)
+                else None,
+                "harness_version": session.get("harness", {}).get("version")
+                if isinstance(session.get("harness"), Mapping)
+                else None,
+            },
+        }
+        if event_type == "error":
+            evidence["category"] = str(payload.get("category") or "unknown")
+            evidence["subtype"] = str(payload.get("subtype") or "unknown")
+            evidence["tool"] = str(payload.get("tool") or "unknown")
+        out.append(evidence)
     return out
 
 

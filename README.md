@@ -209,12 +209,22 @@ python "${CLAUDE_PLUGIN_ROOT}/scripts/agent-kpt.py" status --project .
 
 Python 3.10+ is required. The Skill does not install dependencies into the user's project automatically.
 
-Persistent state is stored outside the project under:
+Persistent state, workflow intermediates, and reports are stored outside the target repository by default:
 
 ```text
 ~/.agent-kpt/projects/<hashed-project-path>/
+  ledger.json
+  last-packet.json
+  work/
+  reports/
 ```
 
-Set `AGENT_KPT_HOME` to override that location.
+Set `AGENT_KPT_HOME` to override the base state directory.
+
+Set `AGENT_KPT_REPORT_DIR` to override the final report directory. This is an explicit override: if you point it inside the target repository, reports will intentionally appear there and may show up in `git status`.
+
+Raw prompt text, assistant text, tool input/output, and raw error text are not persisted by the default analysis packet. Error text may be inspected transiently on the user's machine to retain only deterministic derived classification such as category/subtype/tool/fingerprint.
+
+Repeated adapter diagnostics are aggregated before semantic composition, and detailed `user.message` entries are kept out of the Evidence packet while aggregate message statistics remain available.
 
 See [One-command workflow](docs/one-command-workflow.md) for the architecture and privacy boundary.

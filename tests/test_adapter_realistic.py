@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from agent_kpt.adapters.claude_code import ingest_paths
+from agent_kpt.adapters.claude_code import _classify_error, _extract_error_text, ingest_paths
 
 
 def write_jsonl(path: Path, records):
@@ -104,8 +104,51 @@ class ClaudeCodeRealisticAdapterTests(unittest.TestCase):
             self.assertEqual(skills[0]["payload"]["name"], "advisor")
             self.assertEqual(commands[0]["payload"]["name"], "review")
 
+            errors = [e for e in result["events"] if e["type"] == "error"]
+            self.assertEqual(len(errors), 1)
+            self.assertEqual(errors[0]["payload"]["category"], "path")
+            self.assertEqual(errors[0]["payload"]["subtype"], "path-quoting")
+            self.assertEqual(errors[0]["payload"]["tool"], "Bash")
+            self.assertEqual(errors[0]["fingerprint"], "error:path-quoting")
+
             serialized = json.dumps(result, ensure_ascii=False)
             self.assertNotIn("SECRET", serialized)
+
+
+    def test_429_inside_path_is_not_rate_limit(self):
+        category, subtype = _classify_error(
+            error_type=None,
+            text="/tmp/build-4290/x: No such file or directory",
+        )
+        self.assertEqual((category, subtype), ("path", "file-not-found"))
+
+    def test_timeout_word_inside_path_is_not_timeout(self):
+        category, subtype = _classify_error(
+            error_type=None,
+            text="/tmp/timeout-results/x: No such file or directory",
+        )
+        self.assertEqual((category, subtype), ("path", "file-not-found"))
+
+    def test_timeout_error_type_is_timeout(self):
+        category, subtype = _classify_error(
+            error_type="TimeoutError",
+            text="request failed",
+        )
+        self.assertEqual((category, subtype), ("timeout", "timeout"))
+
+    def test_http_429_is_rate_limit(self):
+        category, subtype = _classify_error(
+            error_type=None,
+            text="HTTP status 429: request rejected",
+        )
+        self.assertEqual((category, subtype), ("rate-limit", "rate-limit"))
+
+    def test_deep_error_payload_is_bounded(self):
+        value = "leaf"
+        for _ in range(100):
+            value = {"message": [value]}
+        extracted = _extract_error_text(value, max_depth=8)
+        self.assertIsInstance(extracted, str)
 
 
 if __name__ == "__main__":

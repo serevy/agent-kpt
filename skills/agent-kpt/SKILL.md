@@ -37,6 +37,24 @@ If `python` is unavailable, try `python3`. Python 3.10+ is required.
 
 Do not modify the user's project to install dependencies automatically.
 
+## Resolve working paths
+
+Before weekly/monthly work, run:
+
+```sh
+agent-kpt paths --project .
+```
+
+Read the returned JSON and use exactly:
+
+- `work_dir` for intermediate JSON files;
+- `report_dir` for final HTML/Markdown reports.
+
+Do not write agent-kpt temp/report files into the target repository.
+
+The default report directory is under `~/.agent-kpt/projects/<hash>/reports/`.
+`AGENT_KPT_REPORT_DIR` may override the report directory.
+
 ## Status
 
 For `status`, run:
@@ -54,18 +72,20 @@ Do not create a report or modify the ledger in status mode.
 Run:
 
 ```sh
-agent-kpt workflow prepare <weekly|monthly> --project . -o .agent-kpt-packet.json
+agent-kpt workflow prepare <weekly|monthly> --project . -o <work_dir>/packet.json
 ```
 
-Read `.agent-kpt-packet.json`.
+Read `<work_dir>/packet.json`.
 
 If diagnostics say no transcripts matched the current project, stop with a concise explanation. Do not fabricate a KPT.
 
-The packet does not persist raw prompt text, assistant text, or raw tool input/output.
+The packet does not persist raw prompt text, assistant text, raw tool input/output, or raw error text.
+
+Error text may be inspected transiently by the local adapter only to derive privacy-safe fields such as `category`, `subtype`, `tool`, and a stable fingerprint.
 
 ## Compose the Report View Model
 
-Create `.agent-kpt-report.json` using `agent-kpt.report/v0alpha1`.
+Create `<work_dir>/report.json` using `agent-kpt.report/v0alpha1`.
 
 Keep the surface small:
 
@@ -75,7 +95,9 @@ Keep the surface small:
 - zero or one Next Try;
 - at most 3 trends;
 - no score / grade / rank / rating;
-- details retain raw-vs-deduplicated recurrence and evidence.
+- details retain raw-vs-deduplicated recurrence and evidence;
+- error Evidence copies `kind`, `session_id`, `category`, `subtype`, and `tool` from the analysis packet when available;
+- include all packet error Evidence in `details.evidence`; the deterministic renderer groups it and selects representatives.
 
 Translate internal facts into plain meaning. A worker should not need to understand `root_lineage_id`.
 
@@ -83,9 +105,17 @@ Keep must reinforce evidence-backed behavior. Problems must distinguish raw repe
 
 Surface environment changes when they could invalidate old advice.
 
+For error-heavy reports, do not repeat dozens of identical “tool error” rows as the useful part of the drill-down. Prefer:
+
+1. classification summary (path / permission / timeout / syntax / dependency / network / auth / rate-limit / unknown);
+2. representative Evidence across distinct root lineages;
+3. the full Evidence list only at the deepest drill-down.
+
+Use the derived classification to make the Problem / Next Try actionable. Do not invent a more specific cause than the packet supports.
+
 ## Create ledger actions
 
-Create `.agent-kpt-review.json`:
+Create `<work_dir>/review.json`:
 
 ```json
 {
@@ -116,7 +146,7 @@ Ledger interventions remain `proposed`; never mark them accepted on the user's b
 After the report renders successfully, apply actions:
 
 ```sh
-agent-kpt apply-review .agent-kpt-review.json .agent-kpt-packet.json --project . -o .agent-kpt-ledger-result.json
+agent-kpt apply-review <work_dir>/review.json <work_dir>/packet.json --project . -o <work_dir>/ledger-result.json
 ```
 
 ## Optional Japanese polish
@@ -130,26 +160,26 @@ Skip this step if unavailable.
 ## Render
 
 ```sh
-agent-kpt render-report .agent-kpt-report.json --format html -o agent-kpt-report.html
-agent-kpt render-report .agent-kpt-report.json --format markdown -o agent-kpt-report.md
+agent-kpt render-report <work_dir>/report.json --format html -o <report_dir>/agent-kpt-report.html
+agent-kpt render-report <work_dir>/report.json --format markdown -o <report_dir>/agent-kpt-report.md
 ```
 
 If rendering fails, fix the Report View Model. Do not bypass validation.
 
 ## Clean up and respond
 
-Delete only:
+Delete only the intermediate files created in `<work_dir>` for this run:
 
-- `.agent-kpt-packet.json`
-- `.agent-kpt-report.json`
-- `.agent-kpt-review.json`
-- `.agent-kpt-ledger-result.json`
+- `packet.json`
+- `report.json`
+- `review.json`
+- `ledger-result.json`
 
-Keep:
+Keep the final reports in `<report_dir>`:
 
 - `agent-kpt-report.html`
 - `agent-kpt-report.md`
 
-Tell the user the one-sentence takeaway, the single Next Try, and the saved report paths. With `--details`, also mention the most important raw-vs-independent recurrence distinction and any environment-change/revalidation marker.
+Tell the user the one-sentence takeaway, the single Next Try, and the absolute saved report paths. With `--details`, also mention the most important raw-vs-independent recurrence distinction, top error classifications, and any environment-change/revalidation marker.
 
 Do not dump the whole evidence section into chat.

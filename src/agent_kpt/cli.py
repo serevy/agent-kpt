@@ -10,6 +10,7 @@ from agent_kpt.adapters.claude_code import ingest_paths, load_lineage_map
 from agent_kpt.metrics import compute_metrics, render_metrics_markdown
 from agent_kpt.report import render_report_html, render_report_markdown
 from agent_kpt.review import apply_review_actions
+from agent_kpt.storage import project_paths
 from agent_kpt.workflow import build_analysis_packet, ledger_status
 
 
@@ -51,6 +52,10 @@ def build_parser() -> argparse.ArgumentParser:
     prepare.add_argument("--timezone", default="UTC", help="IANA report timezone")
     prepare.add_argument("--no-persist", action="store_true", help="do not save last packet")
     prepare.add_argument("-o", "--output", default="-", help="output JSON path, or - for stdout")
+
+    paths = subcommands.add_parser("paths", help="show resolved state/work/report directories")
+    paths.add_argument("--project", default=".", help="project working directory")
+    paths.add_argument("-o", "--output", default="-", help="output JSON path, or - for stdout")
 
     status = subcommands.add_parser("status", help="show local improvement-ledger status")
     status.add_argument("--project", default=".", help="project working directory")
@@ -109,6 +114,11 @@ def main(argv: list[str] | None = None) -> int:
                 persist=not args.no_persist,
             )
             _write_text(args.output, json.dumps(packet, ensure_ascii=False, indent=2) + "\n")
+            return 0
+
+        if args.command == "paths":
+            result = project_paths(args.project)
+            _write_text(args.output, json.dumps(result, ensure_ascii=False, indent=2) + "\n")
             return 0
 
         if args.command == "status":

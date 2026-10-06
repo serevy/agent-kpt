@@ -361,6 +361,7 @@ def _read_session(
             _events_from_record(session_id, record, index, diagnostics, path.name)
         )
     events = _collapse_model_calls(events)
+    _attach_tool_names(events)
     return session, events, diagnostics
 
 
@@ -620,6 +621,23 @@ def _user_events(
                 if isinstance(block.get("error_type"), str)
                 else None
             )
+            payload: dict[str, Any] = {
+                "tool_use_id": tool_use_id,
+                "is_error": is_error,
+            }
+            fingerprint = None
+            if is_error:
+                category, subtype = _classify_error(
+                    error_type=error_type,
+                    text=_extract_error_text(block.get("content")),
+                )
+                payload["category"] = category
+                payload["subtype"] = subtype
+                fingerprint = (
+                    _error_fingerprint(error_type)
+                    if error_type
+                    else _classified_error_fingerprint(category, subtype)
+                )
             events.append(
                 _event(
                     session_id,
@@ -627,12 +645,10 @@ def _user_events(
                     source_index,
                     timestamp,
                     "error" if is_error else "tool.result",
-                    {"tool_use_id": tool_use_id, "is_error": is_error},
+                    payload,
                     source_name,
                     suffix=f"tool-result-{block_index}",
-                    fingerprint=_error_fingerprint(error_type or "tool-result")
-                    if is_error
-                    else None,
+                    fingerprint=fingerprint,
                 )
             )
     return events
@@ -683,18 +699,33 @@ def _tool_result_event(
         if isinstance(record.get("error_type"), str)
         else None
     )
+    payload: dict[str, Any] = {
+        "tool_use_id": tool_use_id,
+        "is_error": is_error,
+    }
+    fingerprint = None
+    if is_error:
+        category, subtype = _classify_error(
+            error_type=error_type,
+            text=_extract_error_text(record.get("content") or record.get("message")),
+        )
+        payload["category"] = category
+        payload["subtype"] = subtype
+        fingerprint = (
+                    _error_fingerprint(error_type)
+                    if error_type
+                    else _classified_error_fingerprint(category, subtype)
+                )
     return _event(
         session_id,
         record,
         source_index,
         timestamp,
         "error" if is_error else "tool.result",
-        {"tool_use_id": tool_use_id, "is_error": is_error},
+        payload,
         source_name,
         suffix="tool-result",
-        fingerprint=_error_fingerprint(error_type or "tool-result")
-        if is_error
-        else None,
+        fingerprint=fingerprint,
     )
 
 
@@ -717,17 +748,134 @@ def _tool_error_event(
         if isinstance(record.get("tool_use_id"), str)
         else None
     )
+    category, subtype = _classify_error(
+        error_type=error_type,
+        text=_extract_error_text(
+            record.get("message")
+            or record.get("error")
+            or record.get("stderr")
+            or record.get("content")
+        ),
+    )
     return _event(
         session_id,
         record,
         source_index,
         timestamp,
         "error",
-        {"tool": tool_name, "tool_use_id": tool_use_id},
+        {
+            "tool": tool_name,
+            "tool_use_id": tool_use_id,
+            "category": category,
+            "subtype": subtype,
+        },
         source_name,
         suffix="tool-error",
-        fingerprint=_error_fingerprint(error_type or "tool"),
+        fingerprint=(
+            _error_fingerprint(error_type)
+            if error_type
+            else _classified_error_fingerprint(category, subtype)
+        ),
     )
+
+
+def _attach_tool_names(events: list[dict[str, Any]]) -> None:
+    tool_by_use_id: dict[str, str] = {}
+    for event in events:
+        if event.get("type") != "tool.use":
+            continue
+        payload = event.get("payload")
+        if not isinstance(payload, dict):
+            continue
+        tool_use_id = payload.get("tool_use_id")
+        name = payload.get("name")
+        if isinstance(tool_use_id, str) and isinstance(name, str) and name:
+            tool_by_use_id[tool_use_id] = name
+
+    for event in events:
+        if event.get("type") != "error":
+            continue
+        payload = event.get("payload")
+        if not isinstance(payload, dict) or payload.get("tool"):
+            continue
+        tool_use_id = payload.get("tool_use_id")
+        if isinstance(tool_use_id, str) and tool_use_id in tool_by_use_id:
+            payload["tool"] = tool_by_use_id[tool_use_id]
+
+
+def _extract_error_text(value: Any, *, max_depth: int = 8) -> str:
+    parts: list[str] = []
+
+    def collect(item: Any, depth: int) -> None:
+        if depth > max_depth:
+            return
+        if isinstance(item, str):
+            parts.append(item)
+            return
+        if isinstance(item, list):
+            for child in item:
+                collect(child, depth + 1)
+            return
+        if isinstance(item, dict):
+            for key in ("text", "message", "error", "stderr", "content"):
+                if key in item:
+                    collect(item[key], depth + 1)
+
+    collect(value, 0)
+    return "\n".join(parts)
+
+def _classify_error(*, error_type: str | None, text: str) -> tuple[str, str]:
+    haystack = f"{error_type or ''}\n{text}".lower()
+
+    if (
+        "rate limit" in haystack
+        or "too many requests" in haystack
+        or re.search(r"\b(?:http(?: status)?|status(?: code)?)\s*[:=]?\s*429\b", haystack)
+    ):
+        return "rate-limit", "rate-limit"
+
+    normalized_error_type = (error_type or "").lower()
+    if (
+        "timeout" in normalized_error_type
+        or "timedout" in normalized_error_type
+        or any(
+            pattern in haystack
+            for pattern in (
+                "timed out",
+                "timeout error",
+                "request timeout",
+                "operation timeout",
+                "connection timeout",
+                "read timeout",
+                "connect timeout",
+                "deadline exceeded",
+                "etimedout",
+            )
+        )
+    ):
+        return "timeout", "timeout"
+
+    rules = [
+        ("auth", "unauthorized", ("unauthorized", "authentication", "invalid token", "api key")),
+        ("permission", "permission-denied", ("permission denied", "access denied", "eacces", "operation not permitted")),
+        ("path", "path-quoting", ("path-quoting", "path quoting")),
+        ("path", "file-not-found", ("no such file or directory", "file not found", "path not found", "cannot find path", "enoent")),
+        ("path", "not-a-directory", ("not a directory", "enotdir")),
+        ("dependency", "module-not-found", ("no module named", "module not found", "cannot find module")),
+        ("dependency", "command-not-found", ("command not found", "is not recognized as an internal or external command", "executable not found")),
+        ("syntax", "syntax-error", ("syntax error", "invalid syntax", "parse error", "unexpected token")),
+        ("network", "connection-refused", ("connection refused", "econnrefused")),
+        ("network", "dns", ("could not resolve host", "name or service not known", "getaddrinfo")),
+        ("network", "network", ("network is unreachable", "enetunreach", "econnreset", "connection reset")),
+    ]
+    for category, subtype, patterns in rules:
+        if any(pattern in haystack for pattern in patterns):
+            return category, subtype
+    return "unknown", "unknown"
+
+
+def _classified_error_fingerprint(category: str, subtype: str) -> str:
+    return f"error:{category}:{subtype}"
 
 
 def _event(

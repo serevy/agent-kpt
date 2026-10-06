@@ -29,6 +29,13 @@ _COPY = {
         "days": "日数",
         "weeks": "週数",
         "evidence": "根拠",
+        "error_breakdown": "エラー分類",
+        "category": "分類",
+        "subtype": "種類",
+        "tool": "ツール",
+        "representative": "代表Evidence",
+        "all_evidence": "全Evidenceを見る",
+        "error_privacy_note": "エラー本文は保存せず、分類結果と集計情報のみ保持しています。",
         "diagnostics": "取り込み時の注意",
         "source": "出所",
         "lineage": "作業系統",
@@ -51,6 +58,13 @@ _COPY = {
         "days": "Days",
         "weeks": "Weeks",
         "evidence": "Evidence",
+        "error_breakdown": "Error classification",
+        "category": "Category",
+        "subtype": "Subtype",
+        "tool": "Tool",
+        "representative": "Representative evidence",
+        "all_evidence": "Show all evidence",
+        "error_privacy_note": "Raw error text is not persisted; derived classifications and aggregate telemetry are retained.",
         "diagnostics": "Ingestion notes",
         "source": "Source",
         "lineage": "Lineage",
@@ -277,6 +291,8 @@ h2{{font-size:1.15rem;margin:28px 0 12px}}
 .panel ul{{margin:0;padding-left:20px}} .panel li+li{{margin-top:8px}}
 .trend-mark{{display:inline-block;min-width:2.6em;font-weight:700}}
 details{{margin-top:32px;padding:0 16px 16px}}
+.evidence-all{{margin-top:12px;padding:0 12px 12px}}
+.evidence-all summary{{padding:12px 0}}
 summary{{cursor:pointer;font-weight:700;padding:16px 0}}
 table{{width:100%;border-collapse:collapse;font-size:.9rem}}
 th,td{{border-bottom:1px solid var(--line);padding:8px;text-align:left;vertical-align:top}}
@@ -339,26 +355,81 @@ def _markdown_details(report: Mapping[str, Any], text: Mapping[str, str]) -> lis
         if item.get("plain_note"):
             lines.append(f"| ↳ {item['plain_note']} |  |  |  |  |  |")
 
+    error_groups = _group_error_evidence(details["evidence"])
+    if error_groups:
+        lines.extend(["", f"### {text['error_breakdown']}", "", text["error_privacy_note"], ""])
+        lines.extend(
+            [
+                f"| {text['category']} | {text['subtype']} | {text['tool']} | {text['raw']} | {text['sessions']} | {text['lineages']} |",
+                "| --- | --- | --- | ---: | ---: | ---: |",
+            ]
+        )
+        for group in error_groups:
+            lines.append(
+                f"| {_markdown_safe(group['category'])} | {_markdown_safe(group['subtype'])} | "
+                f"{_markdown_safe(group['tool'])} | {group['raw_occurrences']} | "
+                f"{group['unique_sessions']} | {group['unique_root_lineages']} |"
+            )
+
+        lines.extend(["", f"### {text['representative']}", ""])
+        for group in error_groups:
+            lines.append(
+                f"#### {_markdown_safe(group['category'])} / {_markdown_safe(group['subtype'])} "
+                f"· {_markdown_safe(group['tool'])} ({group['raw_occurrences']})"
+            )
+            lines.append("")
+            for item in group["representative"]:
+                lines.extend(_markdown_evidence_item(item, text))
+            lines.append("")
+
     lines.extend(["", f"### {text['evidence']}", ""])
     if not details["evidence"]:
         lines.append(text["none"])
     for item in details["evidence"]:
-        lineage = item.get("root_lineage_id") or "-"
-        lines.extend(
-            [
-                f"- **{item['title']}**",
-                f"  - {item['observed_at']} · {text['lineage']}: `{lineage}` · {text['source']}: `{item['source']}`",
-            ]
-        )
-        if item.get("note"):
-            lines.append(f"  - {item['note']}")
+        lines.extend(_markdown_evidence_item(item, text))
 
     if details["diagnostics"]:
         lines.extend(["", f"### {text['diagnostics']}", ""])
         for item in details["diagnostics"]:
-            lines.append(f"- {item['message']}")
+            count = item.get("count", 1)
+            suffix = f" ×{count}" if isinstance(count, int) and count > 1 else ""
+            lines.append(f"- {item['message']}{suffix}")
     return lines
 
+
+def _markdown_safe(value: Any) -> str:
+    escaped = escape(str(value), quote=False)
+    return (
+        escaped.replace("|", "&#124;")
+        .replace("\r\n", "\n")
+        .replace("\r", "\n")
+        .replace("\n", "<br>")
+    )
+
+
+def _markdown_code(value: Any) -> str:
+    return f"<code>{_markdown_safe(value)}</code>"
+
+
+def _markdown_evidence_item(item: Mapping[str, Any], text: Mapping[str, str]) -> list[str]:
+    lineage = item.get("root_lineage_id") or "-"
+    extras = []
+    if item.get("category"):
+        extras.append(f"{text['category']}: {_markdown_code(item['category'])}")
+    if item.get("subtype"):
+        extras.append(f"{text['subtype']}: {_markdown_code(item['subtype'])}")
+    if item.get("tool"):
+        extras.append(f"{text['tool']}: {_markdown_code(item['tool'])}")
+    lines = [
+        f"- **{_markdown_safe(item['title'])}**",
+        f"  - {_markdown_safe(item['observed_at'])} · {text['lineage']}: {_markdown_code(lineage)} "
+        f"· {text['source']}: {_markdown_code(item['source'])}",
+    ]
+    if extras:
+        lines.append("  - " + " · ".join(extras))
+    if item.get("note"):
+        lines.append(f"  - {_markdown_safe(item['note'])}")
+    return lines
 
 def _html_cards(items: list[Mapping[str, Any]], kind: str) -> str:
     blocks: list[str] = []
@@ -396,20 +467,60 @@ def _html_details(report: Mapping[str, Any], text: Mapping[str, str]) -> str:
             "</tr>"
         )
 
-    evidence_blocks = []
-    for item in details["evidence"]:
-        lineage = item.get("root_lineage_id") or "-"
-        note = f'<p>{escape(str(item["note"]))}</p>' if item.get("note") else ""
-        evidence_blocks.append(
-            "<article>"
-            f"<h4>{escape(str(item['title']))}</h4>"
-            f"<p>{escape(str(item['observed_at']))} · {escape(text['lineage'])}: "
-            f"<code>{escape(str(lineage))}</code> · {escape(text['source'])}: "
-            f"<code>{escape(str(item['source']))}</code></p>"
-            f"{note}</article>"
+    error_groups = _group_error_evidence(details["evidence"])
+    error_html = ""
+    if error_groups:
+        group_rows = "".join(
+            "<tr>"
+            f"<td>{escape(str(group['category']))}</td>"
+            f"<td>{escape(str(group['subtype']))}</td>"
+            f"<td>{escape(str(group['tool']))}</td>"
+            f"<td>{group['raw_occurrences']}</td>"
+            f"<td>{group['unique_sessions']}</td>"
+            f"<td>{group['unique_root_lineages']}</td>"
+            "</tr>"
+            for group in error_groups
+        )
+        representative = []
+        for group in error_groups:
+            blocks = "".join(_html_evidence_item(item, text) for item in group["representative"])
+            representative.append(
+                f"<section><h4>{escape(str(group['category']))} / {escape(str(group['subtype']))} "
+                f"· {escape(str(group['tool']))} ({group['raw_occurrences']})</h4>"
+                f'<div class="evidence">{blocks}</div></section>'
+            )
+        error_html = (
+            f'<h3>{escape(text["error_breakdown"])}</h3>'
+            f'<p class="note">{escape(text["error_privacy_note"])}</p>'
+            '<div style="overflow-x:auto"><table>'
+            f'<thead><tr><th>{escape(text["category"])}</th><th>{escape(text["subtype"])}</th>'
+            f'<th>{escape(text["tool"])}</th><th>{escape(text["raw"])}</th>'
+            f'<th>{escape(text["sessions"])}</th><th>{escape(text["lineages"])}</th></tr></thead>'
+            f'<tbody>{group_rows}</tbody></table></div>'
+            f'<h3>{escape(text["representative"])}</h3>'
+            + "".join(representative)
         )
 
-    diagnostics = "".join(f"<li>{escape(str(item['message']))}</li>" for item in details["diagnostics"])
+    all_evidence = "".join(_html_evidence_item(item, text) for item in details["evidence"])
+    evidence_html = (
+        f'<details class="evidence-all"><summary>{escape(text["all_evidence"])} '
+        f'({len(details["evidence"])})</summary>'
+        f'<div class="evidence">{all_evidence}</div></details>'
+        if details["evidence"]
+        else f'<p class="note">{escape(text["none"])}</p>'
+    )
+
+    diagnostics = "".join(
+        "<li>"
+        + escape(str(item["message"]))
+        + (
+            f" ×{item['count']}"
+            if isinstance(item.get("count"), int) and item.get("count", 1) > 1
+            else ""
+        )
+        + "</li>"
+        for item in details["diagnostics"]
+    )
     diagnostics_html = (
         f'<h3>{escape(text["diagnostics"])}</h3><ul>{diagnostics}</ul>' if diagnostics else ""
     )
@@ -421,10 +532,97 @@ def _html_details(report: Mapping[str, Any], text: Mapping[str, str]) -> str:
         f'<th>{escape(text["sessions"])}</th><th>{escape(text["lineages"])}</th>'
         f'<th>{escape(text["days"])}</th><th>{escape(text["weeks"])}</th></tr></thead>'
         f'<tbody>{"".join(rows)}</tbody></table></div>'
-        f'<h3>{escape(text["evidence"])}</h3><div class="evidence">{"".join(evidence_blocks)}</div>'
+        + error_html
+        + f'<h3>{escape(text["evidence"])}</h3>'
+        + evidence_html
         + diagnostics_html
     )
 
+
+def _html_evidence_item(item: Mapping[str, Any], text: Mapping[str, str]) -> str:
+    lineage = item.get("root_lineage_id") or "-"
+    note = f'<p>{escape(str(item["note"]))}</p>' if item.get("note") else ""
+    extras = []
+    if item.get("category"):
+        extras.append(f'{escape(text["category"])}: <code>{escape(str(item["category"]))}</code>')
+    if item.get("subtype"):
+        extras.append(f'{escape(text["subtype"])}: <code>{escape(str(item["subtype"]))}</code>')
+    if item.get("tool"):
+        extras.append(f'{escape(text["tool"])}: <code>{escape(str(item["tool"]))}</code>')
+    extra_html = f'<p>{" · ".join(extras)}</p>' if extras else ""
+    return (
+        "<article>"
+        f"<h4>{escape(str(item['title']))}</h4>"
+        f"<p>{escape(str(item['observed_at']))} · {escape(text['lineage'])}: "
+        f"<code>{escape(str(lineage))}</code> · {escape(text['source'])}: "
+        f"<code>{escape(str(item['source']))}</code></p>"
+        f"{extra_html}{note}</article>"
+    )
+
+
+def _group_error_evidence(evidence: list[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    groups: dict[tuple[str, str, str], list[Mapping[str, Any]]] = {}
+    for item in evidence:
+        if item.get("kind") != "error" and not item.get("category"):
+            continue
+        key = (
+            str(item.get("category") or "unknown"),
+            str(item.get("subtype") or "unknown"),
+            str(item.get("tool") or "unknown"),
+        )
+        groups.setdefault(key, []).append(item)
+
+    output = []
+    for (category, subtype, tool), items in groups.items():
+        sessions = {item.get("session_id") for item in items if item.get("session_id")}
+        lineages = {
+            item.get("root_lineage_id")
+            for item in items
+            if item.get("root_lineage_id")
+        }
+        output.append(
+            {
+                "category": category,
+                "subtype": subtype,
+                "tool": tool,
+                "raw_occurrences": len(items),
+                "unique_sessions": len(sessions),
+                "unique_root_lineages": len(lineages),
+                "representative": _representative_evidence(items, limit=3),
+            }
+        )
+    output.sort(
+        key=lambda group: (
+            -group["raw_occurrences"],
+            group["category"],
+            group["subtype"],
+            group["tool"],
+        )
+    )
+    return output
+
+
+def _representative_evidence(
+    items: list[Mapping[str, Any]], *, limit: int
+) -> list[Mapping[str, Any]]:
+    selected: list[Mapping[str, Any]] = []
+    selected_object_ids: set[int] = set()
+    seen_lineages: set[str] = set()
+    for item in items:
+        lineage = item.get("root_lineage_id")
+        if isinstance(lineage, str) and lineage not in seen_lineages:
+            selected.append(item)
+            selected_object_ids.add(id(item))
+            seen_lineages.add(lineage)
+        if len(selected) >= limit:
+            return selected
+    for item in items:
+        if id(item) not in selected_object_ids:
+            selected.append(item)
+            selected_object_ids.add(id(item))
+        if len(selected) >= limit:
+            break
+    return selected
 
 def _validate_kpi(item: Any) -> None:
     if not isinstance(item, Mapping):

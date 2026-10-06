@@ -28,6 +28,31 @@ def project_state_dir(project: str | Path) -> Path:
     return agent_kpt_home() / "projects" / project_key(project)
 
 
+def report_dir(project: str | Path) -> Path:
+    override = os.environ.get("AGENT_KPT_REPORT_DIR")
+    if override:
+        return Path(override).expanduser().resolve()
+    return project_state_dir(project) / "reports"
+
+
+def work_dir(project: str | Path) -> Path:
+    return project_state_dir(project) / "work"
+
+
+def project_paths(project: str | Path, *, create: bool = True) -> dict[str, str]:
+    state = project_state_dir(project)
+    reports = report_dir(project)
+    work = work_dir(project)
+    if create:
+        for path in (state, reports, work):
+            path.mkdir(parents=True, exist_ok=True)
+    return {
+        "state_dir": str(state),
+        "report_dir": str(reports),
+        "work_dir": str(work),
+    }
+
+
 def ledger_path(project: str | Path) -> Path:
     return project_state_dir(project) / "ledger.json"
 
