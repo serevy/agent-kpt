@@ -4,7 +4,7 @@ title: Dogfood hardening for privacy-safe actionable reports
 decision_date: 2026-10-06
 recorded_date: 2026-10-06
 decision_status: accepted
-delivery_status: implemented
+delivery_status: validated
 scope:
   - product
   - project
@@ -14,6 +14,7 @@ owners:
 evidence:
   - https://github.com/serevy/agent-kpt/issues/14
   - https://github.com/serevy/agent-kpt/issues/18
+  - https://github.com/serevy/agent-kpt/issues/20
 related:
   - PDDR-0003
   - PDDR-0004
@@ -110,9 +111,9 @@ The repository owner approved this direction from real dogfood feedback on 2026-
 
 ## Delivery and validation
 
-Implemented in PR #19. Hosted regression validation is green; real-environment re-dogfood in Issue #14 remains pending before this record is promoted to `validated`.
+Validated after PR #19 and the second real weekly dogfood recorded in Issue #14.
 
-Evidence so far:
+Evidence:
 
 - the full test suite passes on Ubuntu (Python 3.10 and 3.13), Windows (Python 3.11), and macOS (Python 3.11);
 - PDDR validation passes;
@@ -122,7 +123,12 @@ Evidence so far:
 - individual user-message Evidence is absent while aggregate message statistics remain;
 - HTML/Markdown expose classification summary, representative Evidence, then full Evidence;
 - the launcher rejects Python < 3.10 before importing the application;
-- the original explicit error fingerprint/golden recurrence contract remains unchanged.
+- the original explicit error fingerprint/golden recurrence contract remains unchanged;
+- second real dogfood confirmed target-repository cleanliness;
+- the analysis packet shrank from about 3.7 MB to about 42 KB;
+- about 15,877 repeated adapter warnings collapsed to two counted diagnostic groups;
+- raw-vs-independent-lineage recurrence remained understandable in the worker-facing report;
+- classification remained privacy-safe but showed a known coverage limit (29 of 33 current-week error-like records were `unknown/unknown`), which is tracked separately in Issue #20 rather than invalidating this hardening boundary.
 
 ## Consequences
 
