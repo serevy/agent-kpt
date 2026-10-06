@@ -8,6 +8,7 @@ from unittest.mock import patch
 
 from agent_kpt.review import apply_review_actions
 from agent_kpt.workflow import (
+    _signals,
     _summarize_diagnostics,
     build_analysis_packet,
     discover_claude_code_paths,
@@ -21,6 +22,36 @@ def write_jsonl(path: Path, records):
 
 
 class WorkflowTests(unittest.TestCase):
+    def test_agent_kpt_self_invocation_is_excluded_from_skill_stats(self):
+        result = {
+            "sessions": [],
+            "events": [
+                {
+                    "type": "skill.invoke",
+                    "history_role": "observed",
+                    "payload": {"name": "agent-kpt"},
+                },
+                {
+                    "type": "skill.invoke",
+                    "history_role": "observed",
+                    "payload": {"name": "plugin:agent-kpt"},
+                },
+                {
+                    "type": "skill.invoke",
+                    "history_role": "observed",
+                    "payload": {"name": "namespace/agent-kpt"},
+                },
+                {
+                    "type": "skill.invoke",
+                    "history_role": "observed",
+                    "payload": {"name": "advisor"},
+                },
+            ],
+        }
+        signals = _signals(result)
+        self.assertEqual(signals["skill_invocations"], {"advisor": 1})
+        self.assertEqual(signals["event_counts"]["skill.invoke"], 4)
+
     def test_diagnostics_group_by_code_with_bounded_message_samples(self):
         diagnostics = [
             {

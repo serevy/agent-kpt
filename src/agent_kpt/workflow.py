@@ -177,7 +177,9 @@ def _signals(result: Mapping[str, Any]) -> dict[str, Any]:
     skills = Counter(
         str(e.get("payload", {}).get("name"))
         for e in events
-        if e.get("type") == "skill.invoke" and e.get("payload", {}).get("name")
+        if e.get("type") == "skill.invoke"
+        and e.get("payload", {}).get("name")
+        and not _is_agent_kpt_skill_name(str(e.get("payload", {}).get("name")))
     )
     commands = Counter(
         str(e.get("payload", {}).get("name"))
@@ -242,6 +244,12 @@ def _signals(result: Mapping[str, Any]) -> dict[str, Any]:
             "cache_read_percent": cache_pct,
         },
     }
+
+
+def _is_agent_kpt_skill_name(name: str) -> bool:
+    normalized = name.strip().lower().replace("\\", "/")
+    leaf = normalized.rsplit("/", 1)[-1].rsplit(":", 1)[-1]
+    return leaf == "agent-kpt"
 
 
 def _error_signals(result: Mapping[str, Any]) -> dict[str, Any]:
