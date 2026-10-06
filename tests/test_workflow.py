@@ -75,6 +75,68 @@ class WorkflowTests(unittest.TestCase):
             ],
         )
 
+    def test_apply_review_reuses_same_intervention_across_weeks(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            project = base / "project"
+            state_home = base / "agent-kpt-home"
+            project.mkdir()
+
+            actions = {
+                "schema_version": "agent-kpt.review/v0alpha1",
+                "problems": [
+                    {
+                        "fingerprint": "error:path:file-not-found",
+                        "title": "Path failures recur",
+                        "target_type": "workflow",
+                        "evidence_ids": ["evidence-path"],
+                        "next_try": {
+                            "kind": "workflow",
+                            "summary": "Check path existence before execution",
+                        },
+                    }
+                ],
+            }
+            packet = {
+                "period": {"end": "2026-10-01T10:00:00Z"},
+                "evidence": [
+                    {
+                        "id": "evidence-path",
+                        "kind": "error",
+                        "observed_at": "2026-09-30T10:00:00Z",
+                        "root_lineage_id": "root-a",
+                        "source": "session-a.jsonl",
+                        "source_event_id": "event-a",
+                        "environment": {},
+                    }
+                ],
+            }
+
+            with patch.dict(os.environ, {"AGENT_KPT_HOME": str(state_home)}):
+                first = apply_review_actions(actions, packet, project=str(project))
+                first_intervention = first["problems"][0]["interventions"][0]
+                self.assertEqual(len(first["problems"][0]["interventions"]), 1)
+                self.assertEqual(first_intervention["proposal_count"], 1)
+
+                replay = apply_review_actions(actions, packet, project=str(project))
+                replay_intervention = replay["problems"][0]["interventions"][0]
+                self.assertEqual(len(replay["problems"][0]["interventions"]), 1)
+                self.assertEqual(replay_intervention["proposal_count"], 1)
+
+                next_week = dict(packet)
+                next_week["period"] = {"end": "2026-10-08T10:00:00Z"}
+                second = apply_review_actions(actions, next_week, project=str(project))
+                second_intervention = second["problems"][0]["interventions"][0]
+                self.assertEqual(len(second["problems"][0]["interventions"]), 1)
+                self.assertEqual(second_intervention["proposal_count"], 2)
+                self.assertEqual(
+                    second_intervention["last_proposed_at"],
+                    "2026-10-08T10:00:00Z",
+                )
+
+                status = ledger_status(project=project)
+                self.assertEqual(status["ledger"]["intervention_count"], 1)
+
     def test_discovery_packet_and_local_ledger(self):
         with tempfile.TemporaryDirectory() as tmp:
             base = Path(tmp)
