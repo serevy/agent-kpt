@@ -73,17 +73,21 @@ If left unchanged, an unchanged recommendation could accumulate one pending Inte
    - normalized summary.
 3. Summary normalization is conservative: collapse whitespace and apply case-folding. Punctuation and materially different wording remain distinct.
 4. New Interventions use a stable ID that does not include proposal time.
-5. Existing stored Intervention IDs are never rewritten. Old timestamp-derived IDs are matched semantically and reused.
-6. `proposed_at` remains the original proposal timestamp for compatibility.
-7. New or lazily upgraded Interventions may also carry:
+5. Existing stored canonical Intervention IDs are not rewritten. Old timestamp-derived IDs are matched semantically and reused.
+6. Safe legacy duplicates created by the old timestamp-based identity may be lazily coalesced:
+   - pristine `proposed + not-started` duplicates may fold into one canonical Intervention;
+   - pristine duplicates may fold into one matching human-decided/progressed Intervention;
+   - conflicting human-decided duplicates are preserved rather than silently merged.
+7. `proposed_at` remains the earliest known proposal timestamp for compatibility.
+8. New or lazily upgraded Interventions may also carry:
    - `first_proposed_at`;
    - `last_proposed_at`;
    - `proposal_count`.
-8. Re-applying the exact same proposal timestamp is idempotent and does not increment `proposal_count`.
-9. A later proposal timestamp increments `proposal_count` once and advances `last_proposed_at`.
-10. Re-proposal never overwrites human decision or delivery/effectiveness status.
-11. An accepted, rejected, deferred, applied, effective, or retired Intervention therefore remains the same durable object when resurfaced.
-12. A materially different kind or summary creates a new Intervention.
+9. Re-applying the exact same proposal timestamp is idempotent and does not increment `proposal_count`.
+10. A later proposal timestamp increments `proposal_count` once and advances `last_proposed_at`.
+11. Re-proposal never overwrites human decision or delivery/effectiveness status.
+12. An accepted, rejected, deferred, applied, effective, or retired Intervention therefore remains the same durable object when resurfaced.
+13. A materially different kind or summary creates a new Intervention.
 
 The repository owner approved fixing the repeated-proposal behavior from real dogfood feedback on 2026-10-06.
 
@@ -98,7 +102,8 @@ Expected validation:
 - a later weekly proposal increments only proposal metadata;
 - accepted/rejected/deferred decisions remain unchanged;
 - applied/effective/retired status remains unchanged;
-- legacy stored Intervention IDs remain unchanged;
+- legacy canonical Intervention IDs remain unchanged while safe bug-created duplicates are coalesced;
+- conflicting human-decided duplicates are not auto-coalesced;
 - different proposals still create separate Interventions;
 - integration regression confirms two weekly `apply-review` calls leave `intervention_count == 1`;
 - Windows/macOS/Linux hosted tests and PDDR validation pass.
@@ -110,7 +115,7 @@ Benefits:
 - Ledger status remains bounded instead of growing one duplicate proposal per week;
 - a human decision stays attached to one durable recommendation;
 - repeated recommendation pressure remains observable through `proposal_count` and timestamps;
-- old ledgers can adopt the behavior without migration that rewrites identifiers.
+- old ledgers can adopt the behavior lazily without bulk migration or rewriting the canonical identifier.
 
 Accepted constraints:
 
