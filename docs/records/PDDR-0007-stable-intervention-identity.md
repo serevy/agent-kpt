@@ -4,7 +4,7 @@ title: Stable intervention identity and reproposal reuse
 decision_date: 2026-10-06
 recorded_date: 2026-10-06
 decision_status: accepted
-delivery_status: in-progress
+delivery_status: validated
 scope:
   - product
   - project
@@ -93,20 +93,21 @@ The repository owner approved fixing the repeated-proposal behavior from real do
 
 ## Delivery and validation
 
-Implementation is in progress in Issue #23.
+Validated in PR #24.
 
-Expected validation:
+Evidence:
 
-- unit regression for semantic re-proposal reuse;
-- exact packet replay remains idempotent;
+- unit regressions cover semantic re-proposal reuse and exact replay idempotency;
 - a later weekly proposal increments only proposal metadata;
 - accepted/rejected/deferred decisions remain unchanged;
-- applied/effective/retired status remains unchanged;
+- applied status is preserved across re-proposal;
 - legacy canonical Intervention IDs remain unchanged while safe bug-created duplicates are coalesced;
+- one human-decided Intervention absorbs only pristine proposed duplicates;
 - conflicting human-decided duplicates are not auto-coalesced;
-- different proposals still create separate Interventions;
-- integration regression confirms two weekly `apply-review` calls leave `intervention_count == 1`;
-- Windows/macOS/Linux hosted tests and PDDR validation pass.
+- materially different proposals still create separate Interventions;
+- integration regression confirms repeated weekly `apply-review` calls leave `intervention_count == 1`;
+- GitHub Actions passes on Ubuntu (Python 3.10 and 3.13), Windows (Python 3.11), and macOS (Python 3.11);
+- PDDR validation passes.
 
 ## Consequences
 
