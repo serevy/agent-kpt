@@ -123,28 +123,89 @@ def add_intervention(
         raise ValueError(f"unsupported intervention kind: {kind}")
     if decision not in DECISION_STATES:
         raise ValueError(f"unsupported decision: {decision}")
+
     proposed_at = _normalize_time(proposed_at)
-    intervention_id = _stable_id("intervention", problem["id"], kind, summary, proposed_at)
-    existing = next((item for item in problem["interventions"] if item["id"] == intervention_id), None)
-    if existing:
+    normalized_summary = _normalize_intervention_summary(summary)
+    if not normalized_summary:
+        raise ValueError("intervention summary must not be empty")
+
+    interventions = problem.setdefault("interventions", [])
+    existing = next(
+        (
+            item
+            for item in interventions
+            if item.get("kind") == kind
+            and _normalize_intervention_summary(str(item.get("summary") or ""))
+            == normalized_summary
+        ),
+        None,
+    )
+    if existing is not None:
+        _record_reproposal(existing, proposed_at)
         return existing
+
+    intervention_id = _stable_id(
+        "intervention",
+        str(problem["id"]),
+        kind,
+        normalized_summary,
+    )
     intervention = {
         "id": intervention_id,
         "kind": kind,
-        "summary": summary,
+        "summary": summary.strip(),
         "decision": decision,
         "status": "not-started",
         "proposed_at": proposed_at,
+        "first_proposed_at": proposed_at,
+        "last_proposed_at": proposed_at,
+        "proposal_count": 1,
         "applied_at": None,
         "validated_at": None,
         "retired_at": None,
         "validated_environment": {},
         "retire_reason": None,
     }
-    problem["interventions"].append(intervention)
+    interventions.append(intervention)
     if decision == "accepted" and problem["lifecycle"] in {"observed", "recurring", "revise"}:
         problem["lifecycle"] = "try-proposed"
     return intervention
+
+
+def _record_reproposal(intervention: MutableMapping[str, Any], proposed_at: str) -> None:
+    original = intervention.get("proposed_at")
+    original_time = (
+        _normalize_time(original)
+        if isinstance(original, str) and original
+        else proposed_at
+    )
+    first_raw = intervention.get("first_proposed_at")
+    first = (
+        _normalize_time(first_raw)
+        if isinstance(first_raw, str) and first_raw
+        else original_time
+    )
+    last_raw = intervention.get("last_proposed_at")
+    last = (
+        _normalize_time(last_raw)
+        if isinstance(last_raw, str) and last_raw
+        else original_time
+    )
+
+    intervention["first_proposed_at"] = min(first, original_time, proposed_at)
+    intervention["last_proposed_at"] = max(last, proposed_at)
+
+    count = intervention.get("proposal_count")
+    proposal_count = (
+        count if isinstance(count, int) and not isinstance(count, bool) and count >= 1 else 1
+    )
+    if proposed_at > last:
+        proposal_count += 1
+    intervention["proposal_count"] = proposal_count
+
+
+def _normalize_intervention_summary(summary: str) -> str:
+    return " ".join(summary.split()).casefold()
 
 
 def set_intervention_decision(
