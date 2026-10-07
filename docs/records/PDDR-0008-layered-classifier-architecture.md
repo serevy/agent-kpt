@@ -3,8 +3,8 @@ id: PDDR-0008
 title: Layered privacy-safe classifier architecture
 decision_date: 2026-10-07
 recorded_date: 2026-10-07
-decision_status: proposed
-delivery_status: in-progress
+decision_status: accepted
+delivery_status: validated
 scope:
   - product
   - project
@@ -122,20 +122,21 @@ Status: proposed for validation.
 
 ## Delivery and validation
 
-Implementation is in progress in Issue #20.
+Validated in PR #27.
 
-Validation must include:
+Evidence:
 
-- common/provider/user layer separation;
-- precedence regression;
-- optional local rule file;
-- fail-soft invalid rule behavior;
-- privacy regression proving raw text does not persist;
-- outcome and rule provenance through analysis packet/report;
-- versioned synthetic near-miss fixture;
-- Windows/macOS/Linux hosted tests;
-- CodeRabbit review;
-- evaluation protocol linked to Issue #16.
+- common/provider/user classifier layers are separated;
+- precedence regression enforces `common -> provider -> user -> unknown`;
+- optional local rule files support tool-scoped and tool-agnostic literal rules;
+- invalid user rules fail soft while valid rules continue loading;
+- privacy regressions verify raw classification text is removed before normalized output persists;
+- normalized `outcome`, `rule_id`, `rule_scope`, `ruleset_version`, and provider version propagate through analysis Evidence and report drill-down;
+- versioned synthetic positive and near-miss fixtures prevent known false positives and generic exit-code catch-all behavior;
+- GitHub Actions passes on Ubuntu (Python 3.10 and 3.13), Windows (Python 3.11), and macOS (Python 3.11);
+- PDDR validation passes;
+- CodeRabbit produced no actionable review threads on the implementation;
+- the evaluation protocol is explicitly linked to Issue #16 and does not claim cross-user/project generalization.
 
 Coverage numbers from one user's/project's historical data remain research evidence and are not treated as proof of general classifier quality.
 
