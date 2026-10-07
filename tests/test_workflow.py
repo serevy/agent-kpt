@@ -248,7 +248,13 @@ class WorkflowTests(unittest.TestCase):
                 self.assertEqual(error_evidence["category"], "path")
                 self.assertEqual(error_evidence["subtype"], "file-not-found")
                 self.assertEqual(error_evidence["tool"], "Bash")
+                self.assertEqual(error_evidence["outcome"], "failure")
+                self.assertEqual(error_evidence["rule_scope"], "common")
+                self.assertEqual(error_evidence["rule_id"], "common.path.file-not-found")
+                self.assertEqual(error_evidence["ruleset_version"], "common-v0alpha1")
+                self.assertEqual(error_evidence["provider_version"], "2.1.synthetic")
                 self.assertEqual(packet["signals"]["errors"]["groups"][0]["category"], "path")
+                self.assertEqual(packet["signals"]["errors"]["by_outcome"]["failure"], 1)
 
                 missing_ts = next(
                     item for item in packet["diagnostics"]
