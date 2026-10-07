@@ -9,6 +9,14 @@ from pathlib import Path
 from typing import Any, Iterable, Mapping
 
 from agent_kpt import __version__
+from agent_kpt.adapters.claude_code_classifier import classify_claude_code
+from agent_kpt.classification import (
+    UserRuleSet,
+    classify_common,
+    classify_user,
+    load_user_rules,
+    unknown_classification,
+)
 
 SCHEMA_VERSION = "agent-kpt.core/v0alpha1"
 ADAPTER_NAME = "claude-code-jsonl"
@@ -113,6 +121,7 @@ def ingest_paths(
     paths: Iterable[str | Path],
     *,
     lineage_map: Mapping[str, Mapping[str, str | None]] | None = None,
+    classifier_rules: str | Path | None = None,
 ) -> dict[str, Any]:
     """Normalize Claude Code JSONL without persisting raw conversational content."""
     normalized_paths = sorted((Path(p) for p in paths), key=lambda p: p.as_posix())
@@ -120,12 +129,14 @@ def ingest_paths(
     if lineage_map:
         inferred.update({key: dict(value) for key, value in lineage_map.items()})
 
+    user_rules, classifier_diagnostics = load_user_rules(classifier_rules)
+
     loaded: list[tuple[dict[str, Any], list[dict[str, Any]], list[dict[str, Any]]]] = []
     for raw_path in normalized_paths:
-        loaded.append(_read_session(raw_path, inferred))
+        loaded.append(_read_session(raw_path, inferred, user_rules=user_rules))
 
     sessions = [item[0] for item in loaded]
-    diagnostics = [diag for item in loaded for diag in item[2]]
+    diagnostics = classifier_diagnostics + [diag for item in loaded for diag in item[2]]
     session_by_id = {session["id"]: session for session in sessions}
     ordered_sessions = sorted(sessions, key=lambda s: _session_order_key(s, session_by_id))
 
@@ -255,6 +266,8 @@ def _parent_session_id_from_path(path: Path) -> str | None:
 def _read_session(
     path: Path,
     lineage_map: Mapping[str, Mapping[str, str | None]],
+    *,
+    user_rules: UserRuleSet | None = None,
 ) -> tuple[dict[str, Any], list[dict[str, Any]], list[dict[str, Any]]]:
     session_id = path.stem
     records: list[tuple[int, dict[str, Any]]] = []
@@ -362,6 +375,11 @@ def _read_session(
         )
     events = _collapse_model_calls(events)
     _attach_tool_names(events)
+    _classify_error_events(
+        events,
+        user_rules=user_rules,
+        provider_version=version,
+    )
     return session, events, diagnostics
 
 
@@ -625,19 +643,9 @@ def _user_events(
                 "tool_use_id": tool_use_id,
                 "is_error": is_error,
             }
-            fingerprint = None
             if is_error:
-                category, subtype = _classify_error(
-                    error_type=error_type,
-                    text=_extract_error_text(block.get("content")),
-                )
-                payload["category"] = category
-                payload["subtype"] = subtype
-                fingerprint = (
-                    _error_fingerprint(error_type)
-                    if error_type
-                    else _classified_error_fingerprint(category, subtype)
-                )
+                payload["_classification_text"] = _extract_error_text(block.get("content"))
+                payload["_classification_error_type"] = error_type
             events.append(
                 _event(
                     session_id,
@@ -648,7 +656,7 @@ def _user_events(
                     payload,
                     source_name,
                     suffix=f"tool-result-{block_index}",
-                    fingerprint=fingerprint,
+                    fingerprint=None,
                 )
             )
     return events
@@ -703,19 +711,11 @@ def _tool_result_event(
         "tool_use_id": tool_use_id,
         "is_error": is_error,
     }
-    fingerprint = None
     if is_error:
-        category, subtype = _classify_error(
-            error_type=error_type,
-            text=_extract_error_text(record.get("content") or record.get("message")),
+        payload["_classification_text"] = _extract_error_text(
+            record.get("content") or record.get("message")
         )
-        payload["category"] = category
-        payload["subtype"] = subtype
-        fingerprint = (
-                    _error_fingerprint(error_type)
-                    if error_type
-                    else _classified_error_fingerprint(category, subtype)
-                )
+        payload["_classification_error_type"] = error_type
     return _event(
         session_id,
         record,
@@ -725,7 +725,7 @@ def _tool_result_event(
         payload,
         source_name,
         suffix="tool-result",
-        fingerprint=fingerprint,
+        fingerprint=None,
     )
 
 
@@ -748,15 +748,6 @@ def _tool_error_event(
         if isinstance(record.get("tool_use_id"), str)
         else None
     )
-    category, subtype = _classify_error(
-        error_type=error_type,
-        text=_extract_error_text(
-            record.get("message")
-            or record.get("error")
-            or record.get("stderr")
-            or record.get("content")
-        ),
-    )
     return _event(
         session_id,
         record,
@@ -766,16 +757,18 @@ def _tool_error_event(
         {
             "tool": tool_name,
             "tool_use_id": tool_use_id,
-            "category": category,
-            "subtype": subtype,
+            "is_error": True,
+            "_classification_text": _extract_error_text(
+                record.get("message")
+                or record.get("error")
+                or record.get("stderr")
+                or record.get("content")
+            ),
+            "_classification_error_type": error_type,
         },
         source_name,
         suffix="tool-error",
-        fingerprint=(
-            _error_fingerprint(error_type)
-            if error_type
-            else _classified_error_fingerprint(category, subtype)
-        ),
+        fingerprint=None,
     )
 
 
@@ -824,55 +817,51 @@ def _extract_error_text(value: Any, *, max_depth: int = 8) -> str:
     collect(value, 0)
     return "\n".join(parts)
 
-def _classify_error(*, error_type: str | None, text: str) -> tuple[str, str]:
-    haystack = f"{error_type or ''}\n{text}".lower()
+def _classify_error_events(
+    events: list[dict[str, Any]],
+    *,
+    user_rules: UserRuleSet | None,
+    provider_version: str | None,
+) -> None:
+    for event in events:
+        if event.get("type") != "error":
+            continue
+        payload = event.get("payload")
+        if not isinstance(payload, dict):
+            continue
 
-    if (
-        "rate limit" in haystack
-        or "too many requests" in haystack
-        or re.search(r"\b(?:http(?: status)?|status(?: code)?)\s*[:=]?\s*429\b", haystack)
-    ):
-        return "rate-limit", "rate-limit"
+        text_value = payload.pop("_classification_text", "")
+        text = text_value if isinstance(text_value, str) else ""
+        error_type_value = payload.pop("_classification_error_type", None)
+        error_type = error_type_value if isinstance(error_type_value, str) else None
+        tool_value = payload.get("tool")
+        tool = tool_value if isinstance(tool_value, str) and tool_value else None
 
-    normalized_error_type = (error_type or "").lower()
-    if (
-        "timeout" in normalized_error_type
-        or "timedout" in normalized_error_type
-        or any(
-            pattern in haystack
-            for pattern in (
-                "timed out",
-                "timeout error",
-                "request timeout",
-                "operation timeout",
-                "connection timeout",
-                "read timeout",
-                "connect timeout",
-                "deadline exceeded",
-                "etimedout",
+        classification = (
+            classify_claude_code(error_type=error_type, text=text)
+            or classify_user(user_rules, tool=tool, text=text)
+            or classify_common(error_type=error_type, text=text)
+            or unknown_classification()
+        )
+        payload.update(classification.as_payload(provider_version=provider_version))
+        event["fingerprint"] = (
+            _error_fingerprint(error_type)
+            if error_type
+            else _classified_error_fingerprint(
+                classification.category,
+                classification.subtype,
             )
         )
-    ):
-        return "timeout", "timeout"
 
-    rules = [
-        ("auth", "unauthorized", ("unauthorized", "authentication", "invalid token", "api key")),
-        ("permission", "permission-denied", ("permission denied", "access denied", "eacces", "operation not permitted")),
-        ("path", "path-quoting", ("path-quoting", "path quoting")),
-        ("path", "file-not-found", ("no such file or directory", "file not found", "path not found", "cannot find path", "enoent")),
-        ("path", "not-a-directory", ("not a directory", "enotdir")),
-        ("dependency", "module-not-found", ("no module named", "module not found", "cannot find module")),
-        ("dependency", "command-not-found", ("command not found", "is not recognized as an internal or external command", "executable not found")),
-        ("syntax", "syntax-error", ("syntax error", "invalid syntax", "parse error", "unexpected token")),
-        ("network", "connection-refused", ("connection refused", "econnrefused")),
-        ("network", "dns", ("could not resolve host", "name or service not known", "getaddrinfo")),
-        ("network", "network", ("network is unreachable", "enetunreach", "econnreset", "connection reset")),
-    ]
-    for category, subtype, patterns in rules:
-        if any(pattern in haystack for pattern in patterns):
-            return category, subtype
-    return "unknown", "unknown"
 
+def _classify_error(*, error_type: str | None, text: str) -> tuple[str, str]:
+    """Compatibility helper for built-in classification tests and callers."""
+    classification = (
+        classify_claude_code(error_type=error_type, text=text)
+        or classify_common(error_type=error_type, text=text)
+        or unknown_classification()
+    )
+    return classification.category, classification.subtype
 
 def _classified_error_fingerprint(category: str, subtype: str) -> str:
     return f"error:{category}:{subtype}"
