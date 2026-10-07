@@ -14,4 +14,4 @@ Decision status and delivery status are separate: agreement on a direction is no
 | [PDDR-0006: Dogfood hardening for privacy-safe actionable reports](PDDR-0006-dogfood-hardening-actionable-reports.md) | accepted | validated |
 | [PDDR-0007: Stable intervention identity and reproposal reuse](PDDR-0007-stable-intervention-identity.md) | accepted | validated |
 | [PDDR-0008: Layered privacy-safe classifier architecture](PDDR-0008-layered-classifier-architecture.md) | accepted | validated |
-| [PDDR-0009: Report locale policy](PDDR-0009-report-locale-policy.md) | accepted | implemented |
+| [PDDR-0009: Report locale policy](PDDR-0009-report-locale-policy.md) | accepted | validated |

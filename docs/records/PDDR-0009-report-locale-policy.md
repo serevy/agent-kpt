@@ -4,7 +4,7 @@ title: Provider-independent report locale policy
 decision_date: 2026-10-07
 recorded_date: 2026-10-07
 decision_status: accepted
-delivery_status: implemented
+delivery_status: validated
 scope:
   - product
   - project
@@ -81,8 +81,11 @@ The maintainer requested this policy and its implementation on 2026-10-07.
 Implemented in the resolver, preparation API/CLI, skill, and schema documentation.
 Local Windows Python 3.11 validation passes all 49 unit tests, including precedence,
 normalization, invalid values, CLI packet persistence, host-language independence,
-and renderer UI-label fallback without prose translation. Hosted CI is tracked in
-the implementing pull request. Tests do not claim to validate natural-language
+and renderer UI-label fallback without prose translation. [PR #28](https://github.com/serevy/agent-kpt/pull/28)
+also passes [hosted Python tests](https://github.com/serevy/agent-kpt/actions/runs/37599108729)
+on Ubuntu (3.10 and 3.13), Windows (3.11), and macOS (3.11), plus
+[PDDR validation](https://github.com/serevy/agent-kpt/actions/runs/37599108682).
+Tests do not claim to validate natural-language
 translation quality produced by an agent.
 
 ## Consequences
