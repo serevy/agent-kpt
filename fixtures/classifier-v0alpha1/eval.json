@@ -111,6 +111,30 @@
         "outcome": "blocked",
         "rule_id": "user.pyenv.version-unset"
       }
+    },
+    {
+      "id": "common-git-pathspec-not-found",
+      "layer": "common",
+      "error_type": null,
+      "text": "error: pathspec 'missing.txt' did not match any file(s) known to git",
+      "expected": {
+        "category": "git",
+        "subtype": "pathspec-not-found",
+        "outcome": "failure",
+        "rule_id": "common.git.pathspec-not-found"
+      }
+    },
+    {
+      "id": "near-miss-invalid-pathspec-magic",
+      "layer": "pipeline",
+      "error_type": null,
+      "text": "fatal: invalid pathspec magic ':(attr:foo)' in ':(attr:foo)bar'",
+      "expected": {
+        "category": "unknown",
+        "subtype": "unknown",
+        "outcome": "unknown",
+        "rule_id": "classifier.unknown"
+      }
     }
   ]
 }
