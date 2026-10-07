@@ -17,7 +17,7 @@ class StoragePathTests(unittest.TestCase):
             env = {
                 key: value
                 for key, value in os.environ.items()
-                if key != "AGENT_KPT_REPORT_DIR"
+                if key not in {"AGENT_KPT_REPORT_DIR", "AGENT_KPT_CLASSIFIER_RULES"}
             }
             with patch.dict(
                 os.environ,
@@ -29,8 +29,24 @@ class StoragePathTests(unittest.TestCase):
             self.assertTrue(Path(paths["work_dir"]).is_relative_to(state))
             self.assertTrue(Path(paths["report_dir"]).is_relative_to(state))
             self.assertFalse(Path(paths["report_dir"]).is_relative_to(project))
+            self.assertTrue(Path(paths["classifier_rules_path"]).is_relative_to(state))
+            self.assertFalse(Path(paths["classifier_rules_path"]).is_relative_to(project))
             self.assertTrue(Path(paths["work_dir"]).exists())
             self.assertTrue(Path(paths["report_dir"]).exists())
+
+    def test_classifier_rules_path_can_be_overridden(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            project = base / "project"
+            rules = base / "rules.json"
+            project.mkdir()
+            with patch.dict(
+                os.environ,
+                {"AGENT_KPT_CLASSIFIER_RULES": str(rules)},
+                clear=False,
+            ):
+                paths = project_paths(project)
+            self.assertEqual(Path(paths["classifier_rules_path"]), rules.resolve())
 
     def test_report_dir_can_be_overridden(self):
         with tempfile.TemporaryDirectory() as tmp:
