@@ -3,8 +3,8 @@ id: PDDR-0008
 title: Layered privacy-safe classifier architecture
 decision_date: 2026-10-07
 recorded_date: 2026-10-07
-decision_status: proposed
-delivery_status: in-progress
+decision_status: accepted
+delivery_status: validated
 scope:
   - product
   - project
@@ -91,7 +91,7 @@ Costs:
 - users cannot override built-in classifications without a future explicit override mechanism;
 - rule precedence becomes a compatibility contract.
 
-Status: proposed for validation.
+Status: accepted.
 
 ## Decision
 
@@ -122,9 +122,9 @@ Status: proposed for validation.
 
 ## Delivery and validation
 
-Implementation is under final review in PR #27.
+Validated in PR #27 after hosted regression validation and review findings were resolved.
 
-Evidence established so far:
+Evidence:
 
 - common/provider/user classifier layers are separated;
 - precedence regression enforces `common -> provider -> user -> unknown`;
@@ -133,8 +133,9 @@ Evidence established so far:
 - privacy regressions verify raw classification text is removed before normalized output persists;
 - normalized `outcome`, `rule_id`, `rule_scope`, `ruleset_version`, and provider version propagate through analysis Evidence and report drill-down;
 - versioned synthetic positive and near-miss fixtures cover known false-positive boundaries and generic exit-code catch-all behavior;
-- hosted cross-platform tests and PDDR validation must be green on the final code head;
-- CodeRabbit findings must be resolved before this record is promoted to `accepted / validated`;
+- GitHub Actions passes on Ubuntu (Python 3.10 and 3.13), Windows (Python 3.11), and macOS (Python 3.11);
+- PDDR validation passes;
+- CodeRabbit's two actionable findings were addressed and their review threads were resolved;
 - the evaluation protocol is explicitly linked to Issue #16 and does not claim cross-user/project generalization.
 
 Coverage numbers from one user's/project's historical data remain research evidence and are not treated as proof of general classifier quality.
