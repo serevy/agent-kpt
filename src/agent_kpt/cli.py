@@ -23,6 +23,10 @@ def build_parser() -> argparse.ArgumentParser:
     claude = ingest_sub.add_parser("claude-code", help="normalize Claude Code JSONL sessions")
     claude.add_argument("paths", nargs="+", help="session .jsonl files")
     claude.add_argument("--lineage-map", help="optional JSON lineage map")
+    claude.add_argument(
+        "--classifier-rules",
+        help="optional local classifier-rules JSON file",
+    )
     claude.add_argument("-o", "--output", default="-", help="output JSON path, or - for stdout")
 
     metrics = subcommands.add_parser("metrics", help="compute deterministic metrics")
@@ -49,6 +53,10 @@ def build_parser() -> argparse.ArgumentParser:
     prepare.add_argument("mode", choices=("weekly", "monthly"))
     prepare.add_argument("--project", default=".", help="project working directory")
     prepare.add_argument("--claude-root", help="override ~/.claude/projects")
+    prepare.add_argument(
+        "--classifier-rules",
+        help="override the project-local classifier-rules JSON file",
+    )
     prepare.add_argument("--timezone", default="UTC", help="IANA report timezone")
     prepare.add_argument("--no-persist", action="store_true", help="do not save last packet")
     prepare.add_argument("-o", "--output", default="-", help="output JSON path, or - for stdout")
@@ -79,7 +87,11 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if args.command == "ingest" and args.provider == "claude-code":
             lineage = load_lineage_map(args.lineage_map) if args.lineage_map else None
-            result = ingest_paths(args.paths, lineage_map=lineage)
+            result = ingest_paths(
+                args.paths,
+                lineage_map=lineage,
+                classifier_rules=args.classifier_rules,
+            )
             _write_text(args.output, json.dumps(result, ensure_ascii=False, indent=2) + "\n")
             return 0
 
@@ -110,6 +122,7 @@ def main(argv: list[str] | None = None) -> int:
                 args.mode,
                 project=args.project,
                 root=args.claude_root,
+                classifier_rules=args.classifier_rules,
                 report_timezone=args.timezone,
                 persist=not args.no_persist,
             )
