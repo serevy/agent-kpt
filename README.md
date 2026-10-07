@@ -6,6 +6,8 @@ English | [日本語](README.ja.md)
 
 `agent-kpt` is an experimental continuous-improvement toolkit for people working with coding agents.
 
+KPT means **Keep / Problem / Try**, a retrospective format widely used in Japan. This English README is canonical; [the Japanese README](README.ja.md) is manually synchronized. Report language is a separate user preference.
+
 It analyzes real session history, separates deterministic telemetry from semantic interpretation, and produces concise weekly / monthly KPT retrospectives for the whole working system:
 
 - **Human** — prompt granularity, session boundaries, compact / fork / clear timing, model usage habits
@@ -72,11 +74,11 @@ A retrospective should save attention, not become another wall of text.
 
 ## Initial scope
 
-The first public version will focus on:
+The current Python reference implementation includes:
 
 - Claude Code session ingestion;
 - weekly and monthly KPT;
-- context / cache / latency / retry telemetry;
+- deterministic usage / cache / tool / error telemetry;
 - session lineage / fork deduplication;
 - recurring-problem and intervention ledgers;
 - human-usage coaching around session boundaries and agent interaction;
@@ -95,7 +97,9 @@ Later adapters may include Codex, OpenCode, Cursor, Hermes, and others.
 
 ## Status
 
-Early extraction from a real, personally dogfooded workflow. Interfaces and schemas are not stable yet.
+Experimental v0.1 implementation based on a real, personally dogfooded workflow. Interfaces and schemas remain v0alpha1 and are not stable yet.
+
+The local workflow, concise report renderer, evidence-bound review actions, stable intervention re-proposal, and layered error classifier are implemented. Classifier outcomes distinguish failure, blocked, waiting, warning, transient, and unknown; a provider error flag alone is not proof of an actionable failure.
 
 ## License
 
@@ -215,6 +219,7 @@ Persistent state, workflow intermediates, and reports are stored outside the tar
 ~/.agent-kpt/projects/<hashed-project-path>/
   ledger.json
   last-packet.json
+  classifier-rules.json  # optional local rules
   work/
   reports/
 ```
@@ -228,3 +233,26 @@ Raw prompt text, assistant text, tool input/output, and raw error text are not p
 Repeated adapter diagnostics are aggregated before semantic composition, and detailed `user.message` entries are kept out of the Evidence packet while aggregate message statistics remain available.
 
 See [One-command workflow](docs/one-command-workflow.md) for the architecture and privacy boundary.
+
+## Report language
+
+Report locale is independent of the provider, coding tool, and README language. Resolution order is:
+
+1. `workflow prepare --locale` (explicit request);
+2. `AGENT_KPT_LOCALE` (persistent environment configuration);
+3. `--conversation-locale` (the invoking agent supplies the current user conversation language);
+4. `en-US` when no language is supplied.
+
+```bash
+agent-kpt workflow prepare weekly --project . --locale ja-JP -o packet.json
+```
+
+The packet records `report_contract.locale` and `locale_source`. The composing agent writes report prose in that locale and copies it into the Report View Model's `locale`. Renderer labels support Japanese and English; other locales use English labels while preserving the supplied prose. The deterministic metrics-only `report` command does not compose a localized KPT report.
+
+## Contracts and local customization
+
+- [Schema reference](schemas/v0alpha1/README.md)
+- [Report UX](docs/report-ux-v0alpha1.md) and [improvement ledger](docs/improvement-ledger-v0alpha1.md)
+- [Classifier rules](docs/classifier-rules.md): `common -> provider -> user -> unknown`, first match wins. Optional local rules fill gaps without overriding built-ins.
+- [Classifier evaluation](docs/classifier-evaluation.md): precision, near-miss negatives, and held-out evidence matter alongside coverage.
+- [Decision index](docs/records/README.md)

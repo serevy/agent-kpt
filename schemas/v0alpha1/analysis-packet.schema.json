@@ -61,7 +61,18 @@
       "type": "array"
     },
     "report_contract": {
-      "type": "object"
+      "type": "object",
+      "description": "New packets include resolved report language and selection provenance. Fields remain optional so older saved v0alpha1 packets can still be read.",
+      "properties": {
+        "locale": {
+          "type": "string",
+          "minLength": 2,
+          "description": "Resolved language tag: --locale > AGENT_KPT_LOCALE > --conversation-locale > en-US."
+        },
+        "locale_source": {
+          "enum": ["explicit", "environment", "conversation", "default"]
+        }
+      }
     },
     "privacy": {
       "type": "object",

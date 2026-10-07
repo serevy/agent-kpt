@@ -60,7 +60,7 @@ Conciseness means hiding detail until requested, not deleting it.
 
 A report can show:
 
-- "same failure appeared twice"
+- "same waiting state appeared twice" (or a failure, when the outcome supports it)
 
 while still retaining:
 
@@ -70,6 +70,7 @@ while still retaining:
 - distinct days/weeks;
 - evidence IDs and timestamps;
 - source provenance;
+- outcome and classifier rule ID/scope/version, with provider version when known;
 - ingestion diagnostics.
 
 ## Rendering boundary
@@ -77,3 +78,15 @@ while still retaining:
 The Report View Model contains already-decided facts and copy. The renderer is deterministic. It does not reinterpret evidence.
 
 This makes HTML / Markdown presentation replaceable without changing the KPT semantics.
+
+## Report language
+
+The composing agent uses the analysis packet's `report_contract.locale` for prose and copies it to the Report View Model's `locale`. Selection follows `--locale > AGENT_KPT_LOCALE > --conversation-locale > en-US`, independently of provider, coding tool, and README language. See [locale policy](one-command-workflow.md#report-locale-policy).
+
+The deterministic renderer uses Japanese labels for Japanese locale tags, English labels otherwise, and retains the already-composed prose. English and Japanese labels are currently built in; other languages can have localized prose with English labels. Optional [Japanese copy polish](japanese-copy-policy.md) changes wording only after facts are fixed.
+
+## Actionable classification
+
+Do not present every provider error flag as a failure. Show the distinction between `failure`, `blocked`, `waiting`, `warning`, `transient`, and `unknown` in the interpretation. Waiting or transient states need context before they become a Problem; `unknown` must remain uncertainty rather than a fabricated cause.
+
+Detailed error Evidence exposes category/subtype, outcome, tool, rule ID, rule scope, ruleset version, and provider version when available. These explain the deterministic classification without revealing raw error text. Classifier coverage alone is not proof of accuracy; see [evaluation policy](classifier-evaluation.md).

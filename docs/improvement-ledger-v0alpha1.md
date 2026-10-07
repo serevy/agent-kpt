@@ -85,7 +85,13 @@ Interventions have an explicit `retired` status and reason. Problems can also be
 
 ## Contract boundary
 
+`agent-kpt apply-review review-actions.json packet.json --project .` binds proposed Problems to Evidence IDs in the supplied packet and saves the local ledger. It does not accept or implement Interventions on the user's behalf. The report period end anchors proposal history.
+
+Classifier outcomes and provenance in the packet/report help interpret whether a signal is actionable. Provider error flags alone must not turn waiting, warning, transient, or unknown records into confirmed failures. Ledger writeback retains Evidence identity, source, root lineage, and environment; full classifier metadata remains in the packet/report.
+
+Report locale changes presentation, not fingerprint or Evidence identity, enum values, or human decisions. Intervention matching still depends on normalized summary text and kind: translating an existing proposal's summary is not guaranteed to match its previous identity. Reuse the existing ledger wording for the same proposal rather than re-proposing its translation as a new intervention.
+
 - Schema: `schemas/v0alpha1/ledger.schema.json`
 - Python reference helpers: `src/agent_kpt/ledger.py`
 
-The schema/lifecycle is still v0alpha1 and is under review in PDDR-0003.
+The schema remains v0alpha1. The lifecycle is accepted and validated in [PDDR-0003](records/PDDR-0003-improvement-ledger-lifecycle.md); stable proposal identity is covered by [PDDR-0007](records/PDDR-0007-stable-intervention-identity.md). [PDDR-0008](records/PDDR-0008-layered-classifier-architecture.md) records classifier semantics and provenance.

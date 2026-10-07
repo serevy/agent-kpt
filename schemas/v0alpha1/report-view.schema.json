@@ -59,6 +59,7 @@
     },
     "locale": {
       "type": "string",
+      "description": "Report prose language. Copy report_contract.locale from workflow prepare: explicit --locale > AGENT_KPT_LOCALE > --conversation-locale > en-US. Japanese and English UI labels are available; other locales use English labels without translating prose.",
       "minLength": 2
     },
     "headline": {
