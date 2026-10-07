@@ -432,9 +432,8 @@ def _markdown_evidence_item(item: Mapping[str, Any], text: Mapping[str, str]) ->
     if item.get("rule_id"):
         scope = item.get("rule_scope") or "unknown"
         ruleset = item.get("ruleset_version") or "unknown"
-        extras.append(
-            f"{text['rule']}: {_markdown_code(f'{scope}:{item["rule_id"]}@{ruleset}')}"
-        )
+        rule_label = f"{scope}:{item['rule_id']}@{ruleset}"
+        extras.append(f"{text['rule']}: {_markdown_code(rule_label)}")
     lines = [
         f"- **{_markdown_safe(item['title'])}**",
         f"  - {_markdown_safe(item['observed_at'])} · {text['lineage']}: {_markdown_code(lineage)} "
