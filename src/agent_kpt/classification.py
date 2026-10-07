@@ -187,7 +187,10 @@ def classify_common(*, error_type: str | None, text: str) -> Classification | No
             "pathspec-not-found",
             "failure",
             "common.git.pathspec-not-found",
-            ("pathspec", "did not match any file"),
+            (
+                "did not match any file(s) known to git",
+                "did not match any files known to git",
+            ),
         ),
         (
             "network",
