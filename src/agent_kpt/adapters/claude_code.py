@@ -838,9 +838,9 @@ def _classify_error_events(
         tool = tool_value if isinstance(tool_value, str) and tool_value else None
 
         classification = (
-            classify_claude_code(error_type=error_type, text=text)
+            classify_common(error_type=error_type, text=text)
+            or classify_claude_code(error_type=error_type, text=text)
             or classify_user(user_rules, tool=tool, text=text)
-            or classify_common(error_type=error_type, text=text)
             or unknown_classification()
         )
         payload.update(classification.as_payload(provider_version=provider_version))
@@ -857,8 +857,8 @@ def _classify_error_events(
 def _classify_error(*, error_type: str | None, text: str) -> tuple[str, str]:
     """Compatibility helper for built-in classification tests and callers."""
     classification = (
-        classify_claude_code(error_type=error_type, text=text)
-        or classify_common(error_type=error_type, text=text)
+        classify_common(error_type=error_type, text=text)
+        or classify_claude_code(error_type=error_type, text=text)
         or unknown_classification()
     )
     return classification.category, classification.subtype
