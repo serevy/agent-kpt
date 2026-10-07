@@ -39,10 +39,18 @@ def work_dir(project: str | Path) -> Path:
     return project_state_dir(project) / "work"
 
 
+def classifier_rules_path(project: str | Path) -> Path:
+    override = os.environ.get("AGENT_KPT_CLASSIFIER_RULES")
+    if override:
+        return Path(override).expanduser().resolve()
+    return project_state_dir(project) / "classifier-rules.json"
+
+
 def project_paths(project: str | Path, *, create: bool = True) -> dict[str, str]:
     state = project_state_dir(project)
     reports = report_dir(project)
     work = work_dir(project)
+    classifier_rules = classifier_rules_path(project)
     if create:
         for path in (state, reports, work):
             path.mkdir(parents=True, exist_ok=True)
@@ -50,6 +58,7 @@ def project_paths(project: str | Path, *, create: bool = True) -> dict[str, str]
         "state_dir": str(state),
         "report_dir": str(reports),
         "work_dir": str(work),
+        "classifier_rules_path": str(classifier_rules),
     }
 
 
