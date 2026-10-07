@@ -6,6 +6,8 @@
 
 `agent-kpt` は、コーディングエージェントを使う人向けの実験的な継続改善ツールキットです。
 
+KPTは **Keep / Problem / Try** の略で、日本で広く使われている振り返りの形式です。英語READMEを正本とし、日本語版は手動で同期します。レポートの言語は、このREADMEの言語とは別に選べます。
+
 実際のセッション履歴を解析し、機械的に数えられる情報と、意味を読み取る部分を分けて扱います。週次・月次のKPTでは、Agentだけでなく、作業全体を振り返ります。
 
 - **Human** — 指示の粒度、セッションの切り替え、compact / fork / clear のタイミング、モデルの使い分け
@@ -75,11 +77,11 @@ Skill / Script / Config / Workflow の改善
 
 ## 最初の対象範囲
 
-最初の公開版では、次を中心に進めます。
+現在のPython reference implementationには、次を実装しています。
 
 - Claude Codeのセッション取り込み
 - 週次 / 月次KPT
-- context / cache / latency / retry のtelemetry
+- usage / cache / tool / error の決定的なtelemetry集計
 - session lineage / fork の重複除外
 - Problem / Evidence / Intervention の継続追跡
 - セッションの区切り方やAgentとのやり取りに関する軽いコーチング
@@ -98,7 +100,9 @@ Skill / Script / Config / Workflow の改善
 
 ## 現在の状態
 
-実際に個人運用していたKPTから、OSSとして切り出している初期段階です。InterfaceやSchemaはまだ安定版ではありません。
+実際に個人運用していたKPTをもとにした、実験的なv0.1実装です。InterfaceやSchemaはv0alpha1で、まだ安定版ではありません。
+
+ローカルworkflow、短いレポートのrenderer、Evidenceに結びついたreview actions、Interventionの再提案時の同一性維持、層別error classifierを実装済みです。分類結果はfailure / blocked / waiting / warning / transient / unknownを区別し、Providerのerror flagだけで対処すべき失敗とは判定しません。
 
 ## License
 
@@ -218,6 +222,7 @@ Ledger、workflow中間ファイル、レポートは既定で対象Projectの�
 ~/.agent-kpt/projects/<hashed-project-path>/
   ledger.json
   last-packet.json
+  classifier-rules.json  # 任意のローカルルール
   work/
   reports/
 ```
@@ -229,3 +234,26 @@ state全体の保存場所を変えたい場合は `AGENT_KPT_HOME`、最終レ�
 同じadapter warningはcode単位で件数集約し、`user.message` は個別Evidenceへ大量投入せず、件数や文字数などの集計値だけを残します。
 
 詳しい処理の流れとprivacy boundaryは [One-command workflow](docs/one-command-workflow.md) を参照してください。
+
+## レポートの言語
+
+レポートのlocaleはProvider、coding tool、READMEの言語から独立しています。次の優先順で決めます。
+
+1. `workflow prepare --locale` による明示指定
+2. 環境変数 `AGENT_KPT_LOCALE` による継続的な設定
+3. 呼び出し元Agentが現在のユーザーとの会話言語を渡す `--conversation-locale`
+4. いずれも指定されていない場合は `en-US`
+
+```bash
+agent-kpt workflow prepare weekly --project . --locale ja-JP -o packet.json
+```
+
+packetには `report_contract.locale` と `locale_source` を記録します。Agentはそのlocaleで本文を書き、Report View Modelの `locale` にも同じ値を設定します。rendererの固定ラベルは日本語と英語に対応し、その他のlocaleでは英語ラベルと指定言語の本文を使います。集計専用の `report` コマンドは、言語を選んでKPTを作文する機能ではありません。
+
+## 契約とローカル設定
+
+- [Schema reference](schemas/v0alpha1/README.md)
+- [Report UX](docs/report-ux-v0alpha1.md) と [improvement ledger](docs/improvement-ledger-v0alpha1.md)
+- [Classifier rules](docs/classifier-rules.md): `common -> provider -> user -> unknown` の順で最初の一致を採用します。任意のローカルルールは未分類の補完用で、組み込み分類を上書きしません。
+- [Classifier evaluation](docs/classifier-evaluation.md): coverageだけでなく、precision、誤検出しやすい非該当例、held-out evidenceを確認します。
+- [Decision index](docs/records/README.md)

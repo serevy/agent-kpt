@@ -9,6 +9,7 @@ from typing import Any, Mapping
 
 from agent_kpt.adapters.claude_code import ingest_paths, inspect_transcript
 from agent_kpt.metrics import compute_metrics
+from agent_kpt.locale import resolve_report_locale
 from agent_kpt.storage import (
     canonical_project_path,
     classifier_rules_path,
@@ -60,11 +61,14 @@ def build_analysis_packet(
     root: str | Path | None = None,
     classifier_rules: str | Path | None = None,
     report_timezone: str = "UTC",
+    locale: str | None = None,
+    conversation_locale: str | None = None,
     now: datetime | None = None,
     persist: bool = True,
 ) -> dict[str, Any]:
     if mode not in {"weekly", "monthly"}:
         raise ValueError("mode must be weekly or monthly")
+    report_locale, locale_source = resolve_report_locale(locale, conversation_locale)
     now = now or datetime.now(timezone.utc)
     if now.tzinfo is None:
         now = now.replace(tzinfo=timezone.utc)
@@ -122,6 +126,8 @@ def build_analysis_packet(
         "evidence": _evidence(result),
         "diagnostics": _summarize_diagnostics(result.get("diagnostics", [])),
         "report_contract": {
+            "locale": report_locale,
+            "locale_source": locale_source,
             "max_kpis": 4,
             "max_keep": 3,
             "max_problems": 3,

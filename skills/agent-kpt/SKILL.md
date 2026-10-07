@@ -1,7 +1,7 @@
 ---
 name: agent-kpt
 description: Run a concise weekly/monthly KPT retrospective for the current coding-agent project, or show the improvement-ledger status. Use when the user asks for "/agent-kpt", a weekly/monthly coding-agent retrospective, recurring workflow problems, or what to try next.
-argument-hint: [weekly|monthly|status] [--details]
+argument-hint: [weekly|monthly|status] [--details] [--locale <language-tag>]
 allowed-tools: [Bash, Read, Write, Edit, Skill]
 ---
 
@@ -72,6 +72,21 @@ Do not create a report or modify the ledger in status mode.
 
 ## Weekly / monthly preparation
 
+Resolve report language independently of the provider, coding tool/UI, README,
+OS locale, and historical transcript language. Precedence is:
+
+1. The user's explicit `--locale <language-tag>` for this invocation.
+2. `AGENT_KPT_LOCALE` environment configuration.
+3. The current user's conversation language, supplied as `--conversation-locale`.
+4. `en-US` when the conversation language is unavailable or ambiguous.
+
+Pass explicit `--locale` through unchanged. Supply `--conversation-locale` only
+when the current conversation language is clear (for example `ja-JP` or `en-US`);
+do not pass the inferred conversation language as `--locale`, which would override
+the user's environment configuration. Do not scan old transcripts to infer language.
+The CLI normalizes tags (`ja` / `en` become `ja-JP` / `en-US`, underscores become
+hyphens) and rejects malformed selected values. No separate config file is used.
+
 Run:
 
 ```sh
@@ -79,6 +94,13 @@ agent-kpt workflow prepare <weekly|monthly> --project . -o <work_dir>/packet.jso
 ```
 
 Read `<work_dir>/packet.json`.
+
+Use `report_contract.locale` as the Report View Model's `locale` and write all
+generated headline/summary/card/trend prose in that language. `locale_source`
+records `explicit`, `environment`, `conversation`, or `default`. Do not translate
+IDs, enum values, numeric metrics, timestamps, or provenance. Renderer UI labels
+support Japanese and English; other language tags retain their requested prose
+language with English UI labels. Rendering does not translate existing prose.
 
 If diagnostics say no transcripts matched the current project, stop with a concise explanation. Do not fabricate a KPT.
 
@@ -164,6 +186,12 @@ For a Problem that should persist across reports, use:
 ```
 
 Every evidence ID must come from the packet. Keep fingerprints stable and specific. Do not create a ledger problem from weak speculation.
+
+Before re-proposing an existing intervention, read `<state_dir>/ledger.json` if
+present. Preserve the existing problem fingerprint and intervention kind/summary
+for the same proposal, even when the report locale changes: intervention identity
+uses normalized kind/summary text. Translate presentation text in the Report View
+Model only; a language change must not create a duplicate ledger intervention.
 
 Ledger interventions remain `proposed`; never mark them accepted on the user's behalf.
 

@@ -58,6 +58,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="override the project-local classifier-rules JSON file",
     )
     prepare.add_argument("--timezone", default="UTC", help="IANA report timezone")
+    prepare.add_argument("--locale", help="report language tag; overrides AGENT_KPT_LOCALE")
+    prepare.add_argument(
+        "--conversation-locale",
+        help="current user conversation language tag; fallback before en-US",
+    )
     prepare.add_argument("--no-persist", action="store_true", help="do not save last packet")
     prepare.add_argument("-o", "--output", default="-", help="output JSON path, or - for stdout")
 
@@ -124,6 +129,8 @@ def main(argv: list[str] | None = None) -> int:
                 root=args.claude_root,
                 classifier_rules=args.classifier_rules,
                 report_timezone=args.timezone,
+                locale=args.locale,
+                conversation_locale=args.conversation_locale,
                 persist=not args.no_persist,
             )
             _write_text(args.output, json.dumps(packet, ensure_ascii=False, indent=2) + "\n")
