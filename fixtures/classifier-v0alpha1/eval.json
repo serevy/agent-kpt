@@ -1,0 +1,140 @@
+{
+  "schema_version": "agent-kpt.classifier-eval/v0alpha1",
+  "notes": "Synthetic regression and near-miss cases. This fixture prevents known false positives; it is not evidence of cross-user/project generalization.",
+  "cases": [
+    {
+      "id": "common-file-not-found",
+      "layer": "common",
+      "error_type": null,
+      "text": "No such file or directory: /tmp/missing",
+      "expected": {
+        "category": "path",
+        "subtype": "file-not-found",
+        "outcome": "failure",
+        "rule_id": "common.path.file-not-found"
+      }
+    },
+    {
+      "id": "common-json-invalid",
+      "layer": "common",
+      "error_type": null,
+      "text": "JSONDecodeError: Expecting value: line 1 column 1",
+      "expected": {
+        "category": "syntax",
+        "subtype": "json-invalid",
+        "outcome": "failure",
+        "rule_id": "common.syntax.json-invalid"
+      }
+    },
+    {
+      "id": "common-encoding",
+      "layer": "common",
+      "error_type": null,
+      "text": "UnicodeDecodeError: codec can't decode byte 0xff",
+      "expected": {
+        "category": "encoding",
+        "subtype": "decode-error",
+        "outcome": "failure",
+        "rule_id": "common.encoding.decode-error"
+      }
+    },
+    {
+      "id": "provider-file-not-read",
+      "layer": "provider",
+      "error_type": null,
+      "text": "File has not been read yet. Read it before editing.",
+      "expected": {
+        "category": "precondition",
+        "subtype": "file-not-read",
+        "outcome": "blocked",
+        "rule_id": "claude-code.file-not-read"
+      }
+    },
+    {
+      "id": "near-miss-429-path",
+      "layer": "pipeline",
+      "error_type": null,
+      "text": "/tmp/build-4290/x: No such file or directory",
+      "expected": {
+        "category": "path",
+        "subtype": "file-not-found",
+        "outcome": "failure",
+        "rule_id": "common.path.file-not-found"
+      }
+    },
+    {
+      "id": "near-miss-timeout-path",
+      "layer": "pipeline",
+      "error_type": null,
+      "text": "/tmp/timeout-results/x: No such file or directory",
+      "expected": {
+        "category": "path",
+        "subtype": "file-not-found",
+        "outcome": "failure",
+        "rule_id": "common.path.file-not-found"
+      }
+    },
+    {
+      "id": "no-catch-all-exit-code",
+      "layer": "pipeline",
+      "error_type": null,
+      "text": "Process exited with code 1",
+      "expected": {
+        "category": "unknown",
+        "subtype": "unknown",
+        "outcome": "unknown",
+        "rule_id": "classifier.unknown"
+      }
+    },
+    {
+      "id": "user-unity-waiting",
+      "layer": "user",
+      "tool": "Bash",
+      "error_type": null,
+      "text": "Unity is compiling scripts; wait and retry.",
+      "expected": {
+        "category": "tool-state",
+        "subtype": "unity-busy",
+        "outcome": "waiting",
+        "rule_id": "user.unity.compiling"
+      }
+    },
+    {
+      "id": "user-tool-agnostic-pyenv",
+      "layer": "user",
+      "tool": null,
+      "error_type": null,
+      "text": "pyenv: no global or local python version has been set",
+      "expected": {
+        "category": "environment",
+        "subtype": "python-version-unset",
+        "outcome": "blocked",
+        "rule_id": "user.pyenv.version-unset"
+      }
+    },
+    {
+      "id": "common-git-pathspec-not-found",
+      "layer": "common",
+      "error_type": null,
+      "text": "error: pathspec 'missing.txt' did not match any file(s) known to git",
+      "expected": {
+        "category": "git",
+        "subtype": "pathspec-not-found",
+        "outcome": "failure",
+        "rule_id": "common.git.pathspec-not-found"
+      }
+    },
+    {
+      "id": "near-miss-invalid-pathspec-magic",
+      "layer": "pipeline",
+      "error_type": null,
+      "text": "fatal: invalid pathspec magic ':(attr:foo)' in ':(attr:foo)bar'",
+      "expected": {
+        "category": "unknown",
+        "subtype": "unknown",
+        "outcome": "unknown",
+        "rule_id": "classifier.unknown"
+      }
+    }
+  ]
+}

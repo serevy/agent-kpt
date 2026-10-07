@@ -33,6 +33,9 @@ _COPY = {
         "category": "分類",
         "subtype": "種類",
         "tool": "ツール",
+        "outcome": "結果",
+        "rule": "分類ルール",
+        "provider_version": "Provider版",
         "representative": "代表Evidence",
         "all_evidence": "全Evidenceを見る",
         "error_privacy_note": "エラー本文は保存せず、分類結果と集計情報のみ保持しています。",
@@ -62,6 +65,9 @@ _COPY = {
         "category": "Category",
         "subtype": "Subtype",
         "tool": "Tool",
+        "outcome": "Outcome",
+        "rule": "Rule",
+        "provider_version": "Provider version",
         "representative": "Representative evidence",
         "all_evidence": "Show all evidence",
         "error_privacy_note": "Raw error text is not persisted; derived classifications and aggregate telemetry are retained.",
@@ -360,22 +366,25 @@ def _markdown_details(report: Mapping[str, Any], text: Mapping[str, str]) -> lis
         lines.extend(["", f"### {text['error_breakdown']}", "", text["error_privacy_note"], ""])
         lines.extend(
             [
-                f"| {text['category']} | {text['subtype']} | {text['tool']} | {text['raw']} | {text['sessions']} | {text['lineages']} |",
-                "| --- | --- | --- | ---: | ---: | ---: |",
+                f"| {text['category']} | {text['subtype']} | {text['outcome']} | {text['tool']} | {text['rule']} | {text['raw']} | {text['sessions']} | {text['lineages']} |",
+                "| --- | --- | --- | --- | --- | ---: | ---: | ---: |",
             ]
         )
         for group in error_groups:
             lines.append(
                 f"| {_markdown_safe(group['category'])} | {_markdown_safe(group['subtype'])} | "
-                f"{_markdown_safe(group['tool'])} | {group['raw_occurrences']} | "
-                f"{group['unique_sessions']} | {group['unique_root_lineages']} |"
+                f"{_markdown_safe(group['outcome'])} | {_markdown_safe(group['tool'])} | "
+                f"{_markdown_safe(group['rule_scope'])}:{_markdown_safe(group['rule_id'])}@{_markdown_safe(group['ruleset_version'])} | "
+                f"{group['raw_occurrences']} | {group['unique_sessions']} | {group['unique_root_lineages']} |"
             )
 
         lines.extend(["", f"### {text['representative']}", ""])
         for group in error_groups:
             lines.append(
                 f"#### {_markdown_safe(group['category'])} / {_markdown_safe(group['subtype'])} "
-                f"· {_markdown_safe(group['tool'])} ({group['raw_occurrences']})"
+                f"· {_markdown_safe(group['outcome'])} · {_markdown_safe(group['tool'])} "
+                f"· {_markdown_safe(group['rule_scope'])}:{_markdown_safe(group['rule_id'])}@{_markdown_safe(group['ruleset_version'])} "
+                f"({group['raw_occurrences']})"
             )
             lines.append("")
             for item in group["representative"]:
@@ -418,8 +427,19 @@ def _markdown_evidence_item(item: Mapping[str, Any], text: Mapping[str, str]) ->
         extras.append(f"{text['category']}: {_markdown_code(item['category'])}")
     if item.get("subtype"):
         extras.append(f"{text['subtype']}: {_markdown_code(item['subtype'])}")
+    if item.get("outcome"):
+        extras.append(f"{text['outcome']}: {_markdown_code(item['outcome'])}")
     if item.get("tool"):
         extras.append(f"{text['tool']}: {_markdown_code(item['tool'])}")
+    if item.get("rule_id"):
+        scope = item.get("rule_scope") or "unknown"
+        ruleset = item.get("ruleset_version") or "unknown"
+        rule_label = f"{scope}:{item['rule_id']}@{ruleset}"
+        extras.append(f"{text['rule']}: {_markdown_code(rule_label)}")
+    if item.get("provider_version"):
+        extras.append(
+            f"{text['provider_version']}: {_markdown_code(item['provider_version'])}"
+        )
     lines = [
         f"- **{_markdown_safe(item['title'])}**",
         f"  - {_markdown_safe(item['observed_at'])} · {text['lineage']}: {_markdown_code(lineage)} "
@@ -474,7 +494,9 @@ def _html_details(report: Mapping[str, Any], text: Mapping[str, str]) -> str:
             "<tr>"
             f"<td>{escape(str(group['category']))}</td>"
             f"<td>{escape(str(group['subtype']))}</td>"
+            f"<td>{escape(str(group['outcome']))}</td>"
             f"<td>{escape(str(group['tool']))}</td>"
+            f"<td>{escape(str(group['rule_scope']))}:{escape(str(group['rule_id']))}@{escape(str(group['ruleset_version']))}</td>"
             f"<td>{group['raw_occurrences']}</td>"
             f"<td>{group['unique_sessions']}</td>"
             f"<td>{group['unique_root_lineages']}</td>"
@@ -486,7 +508,9 @@ def _html_details(report: Mapping[str, Any], text: Mapping[str, str]) -> str:
             blocks = "".join(_html_evidence_item(item, text) for item in group["representative"])
             representative.append(
                 f"<section><h4>{escape(str(group['category']))} / {escape(str(group['subtype']))} "
-                f"· {escape(str(group['tool']))} ({group['raw_occurrences']})</h4>"
+                f"· {escape(str(group['outcome']))} · {escape(str(group['tool']))} "
+                f"· {escape(str(group['rule_scope']))}:{escape(str(group['rule_id']))}@{escape(str(group['ruleset_version']))} "
+                f"({group['raw_occurrences']})</h4>"
                 f'<div class="evidence">{blocks}</div></section>'
             )
         error_html = (
@@ -494,7 +518,8 @@ def _html_details(report: Mapping[str, Any], text: Mapping[str, str]) -> str:
             f'<p class="note">{escape(text["error_privacy_note"])}</p>'
             '<div style="overflow-x:auto"><table>'
             f'<thead><tr><th>{escape(text["category"])}</th><th>{escape(text["subtype"])}</th>'
-            f'<th>{escape(text["tool"])}</th><th>{escape(text["raw"])}</th>'
+            f'<th>{escape(text["outcome"])}</th><th>{escape(text["tool"])}</th>'
+            f'<th>{escape(text["rule"])}</th><th>{escape(text["raw"])}</th>'
             f'<th>{escape(text["sessions"])}</th><th>{escape(text["lineages"])}</th></tr></thead>'
             f'<tbody>{group_rows}</tbody></table></div>'
             f'<h3>{escape(text["representative"])}</h3>'
@@ -547,8 +572,20 @@ def _html_evidence_item(item: Mapping[str, Any], text: Mapping[str, str]) -> str
         extras.append(f'{escape(text["category"])}: <code>{escape(str(item["category"]))}</code>')
     if item.get("subtype"):
         extras.append(f'{escape(text["subtype"])}: <code>{escape(str(item["subtype"]))}</code>')
+    if item.get("outcome"):
+        extras.append(f'{escape(text["outcome"])}: <code>{escape(str(item["outcome"]))}</code>')
     if item.get("tool"):
         extras.append(f'{escape(text["tool"])}: <code>{escape(str(item["tool"]))}</code>')
+    if item.get("rule_id"):
+        scope = item.get("rule_scope") or "unknown"
+        ruleset = item.get("ruleset_version") or "unknown"
+        extras.append(
+            f'{escape(text["rule"])}: <code>{escape(str(scope))}:{escape(str(item["rule_id"]))}@{escape(str(ruleset))}</code>'
+        )
+    if item.get("provider_version"):
+        extras.append(
+            f'{escape(text["provider_version"])}: <code>{escape(str(item["provider_version"]))}</code>'
+        )
     extra_html = f'<p>{" · ".join(extras)}</p>' if extras else ""
     return (
         "<article>"
@@ -561,19 +598,36 @@ def _html_evidence_item(item: Mapping[str, Any], text: Mapping[str, str]) -> str
 
 
 def _group_error_evidence(evidence: list[Mapping[str, Any]]) -> list[dict[str, Any]]:
-    groups: dict[tuple[str, str, str], list[Mapping[str, Any]]] = {}
+    groups: dict[
+        tuple[str, str, str, str, str, str, str, str],
+        list[Mapping[str, Any]],
+    ] = {}
     for item in evidence:
         if item.get("kind") != "error" and not item.get("category"):
             continue
         key = (
             str(item.get("category") or "unknown"),
             str(item.get("subtype") or "unknown"),
+            str(item.get("outcome") or "unknown"),
             str(item.get("tool") or "unknown"),
+            str(item.get("rule_scope") or "common"),
+            str(item.get("rule_id") or "classifier.unknown"),
+            str(item.get("ruleset_version") or "unknown"),
+            str(item.get("provider_version") or "unknown"),
         )
         groups.setdefault(key, []).append(item)
 
     output = []
-    for (category, subtype, tool), items in groups.items():
+    for (
+        category,
+        subtype,
+        outcome,
+        tool,
+        rule_scope,
+        rule_id,
+        ruleset_version,
+        provider_version,
+    ), items in groups.items():
         sessions = {item.get("session_id") for item in items if item.get("session_id")}
         lineages = {
             item.get("root_lineage_id")
@@ -584,7 +638,12 @@ def _group_error_evidence(evidence: list[Mapping[str, Any]]) -> list[dict[str, A
             {
                 "category": category,
                 "subtype": subtype,
+                "outcome": outcome,
                 "tool": tool,
+                "rule_scope": rule_scope,
+                "rule_id": rule_id,
+                "ruleset_version": ruleset_version,
+                "provider_version": provider_version,
                 "raw_occurrences": len(items),
                 "unique_sessions": len(sessions),
                 "unique_root_lineages": len(lineages),
@@ -596,7 +655,12 @@ def _group_error_evidence(evidence: list[Mapping[str, Any]]) -> list[dict[str, A
             -group["raw_occurrences"],
             group["category"],
             group["subtype"],
+            group["outcome"],
             group["tool"],
+            group["rule_scope"],
+            group["rule_id"],
+            group["ruleset_version"],
+            group["provider_version"],
         )
     )
     return output

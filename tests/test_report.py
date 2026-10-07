@@ -54,6 +54,38 @@ class ReportViewTests(unittest.TestCase):
         self.assertIn("file-not-found", rendered)
         self.assertIn("エラー本文は保存せず", rendered)
 
+    def test_classifier_provenance_is_visible_and_kept_distinct(self):
+        report = self._report()
+        base = report["details"]["evidence"][0]
+        base["kind"] = "error"
+        base["session_id"] = "session-a"
+        base["category"] = "tool-state"
+        base["subtype"] = "unity-busy"
+        base["outcome"] = "waiting"
+        base["tool"] = "Bash"
+        base["rule_scope"] = "user"
+        base["rule_id"] = "user.unity.compiling"
+        base["ruleset_version"] = "local-v1"
+        base["provider_version"] = "2.1.synthetic"
+
+        second = copy.deepcopy(base)
+        second["id"] = "evidence-rule-v2"
+        second["session_id"] = "session-b"
+        second["root_lineage_id"] = "root-b"
+        second["rule_id"] = "user.unity.compiling-v2"
+        second["ruleset_version"] = "local-v2"
+        report["details"]["evidence"].append(second)
+
+        markdown = render_report_markdown(report)
+        html = render_report_html(report)
+        self.assertIn("waiting", markdown)
+        self.assertIn("user:user.unity.compiling@local-v1", markdown)
+        self.assertIn("user:user.unity.compiling-v2@local-v2", markdown)
+        self.assertIn("Provider版", markdown)
+        self.assertIn("2.1.synthetic", markdown)
+        self.assertIn("user.unity.compiling", html)
+        self.assertIn("local-v2", html)
+
     def test_markdown_escapes_error_group_values(self):
         report = self._report()
         item = report["details"]["evidence"][0]

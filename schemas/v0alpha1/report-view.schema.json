@@ -348,6 +348,21 @@
         },
         "tool": {
           "type": "string"
+        },
+        "outcome": {
+          "enum": ["failure", "blocked", "waiting", "warning", "transient", "unknown"]
+        },
+        "rule_id": {
+          "type": "string"
+        },
+        "rule_scope": {
+          "enum": ["common", "provider", "user"]
+        },
+        "ruleset_version": {
+          "type": "string"
+        },
+        "provider_version": {
+          "type": ["string", "null"]
         }
       }
     },

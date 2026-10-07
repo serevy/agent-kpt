@@ -1,0 +1,21 @@
+{
+  "schema_version": "agent-kpt.classifier-rules/v0alpha1",
+  "ruleset_version": "fixture-user-v1",
+  "rules": [
+    {
+      "id": "user.unity.compiling",
+      "tool": "Bash",
+      "contains_any": ["Unity is compiling", "Unity is reloading"],
+      "category": "tool-state",
+      "subtype": "unity-busy",
+      "outcome": "waiting"
+    },
+    {
+      "id": "user.pyenv.version-unset",
+      "contains_any": ["no global or local python version has been set"],
+      "category": "environment",
+      "subtype": "python-version-unset",
+      "outcome": "blocked"
+    }
+  ]
+}
