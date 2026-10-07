@@ -48,7 +48,8 @@ agent-kpt paths --project .
 Read the returned JSON and use exactly:
 
 - `work_dir` for intermediate JSON files;
-- `report_dir` for final HTML/Markdown reports.
+- `report_dir` for final HTML/Markdown reports;
+- `classifier_rules_path` for optional local user/project classifier rules.
 
 The `paths` command creates the state/work/report directories before returning them. If another caller bypasses `paths`, it must create the chosen work/report directories before writing.
 
@@ -98,7 +99,7 @@ Keep the surface small:
 - at most 3 trends;
 - no score / grade / rank / rating;
 - details retain raw-vs-deduplicated recurrence and evidence;
-- error Evidence copies `kind`, `session_id`, `category`, `subtype`, and `tool` from the analysis packet when available;
+- error Evidence copies `kind`, `session_id`, `category`, `subtype`, `outcome`, `tool`, `rule_id`, `rule_scope`, `ruleset_version`, and `provider_version` from the analysis packet when available;
 - include all packet error Evidence in `details.evidence`; the deterministic renderer groups it and selects representatives.
 
 Translate internal facts into plain meaning. A worker should not need to understand `root_lineage_id`.
@@ -109,9 +110,19 @@ Surface environment changes when they could invalidate old advice.
 
 For error-heavy reports, do not repeat dozens of identical “tool error” rows as the useful part of the drill-down. Prefer:
 
-1. classification summary (path / permission / timeout / syntax / dependency / network / auth / rate-limit / unknown);
+1. classification summary including outcome and rule provenance;
 2. representative Evidence across distinct root lineages;
 3. the full Evidence list only at the deepest drill-down.
+
+Treat `outcome` separately from the provider's raw error flag:
+
+- `failure`: an actionable failure candidate;
+- `blocked`: a precondition/policy/environment block, not necessarily a failed implementation attempt;
+- `waiting` / `transient`: usually a state to wait/retry/observe before creating a durable Problem;
+- `warning`: informational friction unless recurrence/evidence shows impact;
+- `unknown`: insufficient classification evidence.
+
+Do not describe every provider `is_error` record as a failure when the normalized outcome says otherwise.
 
 Use the derived classification to make the Problem / Next Try actionable. Do not invent a more specific cause than the packet supports.
 
@@ -123,6 +134,8 @@ If `unknown/unknown` is the dominant error group, treat root cause as insufficie
 - prefer one observation/classification-oriented Next Try over a speculative fix.
 
 A smaller classified subgroup may still become a Problem when its own evidence is strong and lineage-aware.
+
+Local user/project rules are optional. The default path returned by `agent-kpt paths --project .` lives under agent-kpt state, outside the target repository. Rules only fill classifications that were not already matched by common or provider rules; they do not override built-in classifications.
 
 ## Create ledger actions
 
