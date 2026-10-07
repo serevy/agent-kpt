@@ -93,7 +93,7 @@ Costs:
 
 Status: proposed for validation.
 
-## Proposed decision
+## Decision
 
 1. Classification is deterministic-first and local.
 2. Raw error text may be inspected transiently but is not persisted by the default pipeline.
