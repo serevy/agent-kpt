@@ -39,7 +39,7 @@ class Classification:
 @dataclass(frozen=True)
 class UserRule:
     rule_id: str
-    tool: str
+    tool: str | None
     contains_any: tuple[str, ...]
     category: str
     subtype: str
@@ -184,12 +184,14 @@ def classify_user(
     tool: str | None,
     text: str,
 ) -> Classification | None:
-    if ruleset is None or not tool:
+    if ruleset is None:
         return None
-    normalized_tool = tool.casefold()
+    normalized_tool = tool.casefold() if tool else None
     haystack = text.casefold()
     for rule in ruleset.rules:
-        if rule.tool.casefold() != normalized_tool:
+        if rule.tool is not None and (
+            normalized_tool is None or rule.tool.casefold() != normalized_tool
+        ):
             continue
         if any(pattern.casefold() in haystack for pattern in rule.contains_any):
             return Classification(
@@ -300,9 +302,12 @@ def _parse_user_rule(raw: Any, seen_ids: set[str]) -> UserRule:
     if rule_id in seen_ids:
         raise ValueError(f"duplicate rule id {rule_id!r}")
 
-    tool = raw.get("tool")
-    if not isinstance(tool, str) or not tool.strip():
-        raise ValueError("tool must be a non-empty string")
+    tool_value = raw.get("tool")
+    if tool_value is not None and (
+        not isinstance(tool_value, str) or not tool_value.strip()
+    ):
+        raise ValueError("tool must be a non-empty string when provided")
+    tool = tool_value.strip() if isinstance(tool_value, str) else None
 
     contains_any = raw.get("contains_any")
     if (
@@ -322,7 +327,7 @@ def _parse_user_rule(raw: Any, seen_ids: set[str]) -> UserRule:
 
     return UserRule(
         rule_id=rule_id,
-        tool=tool.strip(),
+        tool=tool,
         contains_any=tuple(item.strip() for item in contains_any),
         category=category,
         subtype=subtype,
