@@ -11,6 +11,7 @@ from agent_kpt.adapters.claude_code import ingest_paths, inspect_transcript
 from agent_kpt.metrics import compute_metrics
 from agent_kpt.storage import (
     canonical_project_path,
+    classifier_rules_path,
     load_last_packet,
     load_ledger,
     project_key,
@@ -57,6 +58,7 @@ def build_analysis_packet(
     *,
     project: str | Path,
     root: str | Path | None = None,
+    classifier_rules: str | Path | None = None,
     report_timezone: str = "UTC",
     now: datetime | None = None,
     persist: bool = True,
@@ -72,8 +74,12 @@ def build_analysis_packet(
 
     project_path = canonical_project_path(project)
     paths = discover_claude_code_paths(project=project_path, root=root)
+    configured_rule_path = _resolve_classifier_rules_path(
+        project_path,
+        classifier_rules,
+    )
     result = (
-        ingest_paths(paths)
+        ingest_paths(paths, classifier_rules=configured_rule_path)
         if paths
         else {
             "schema_version": "agent-kpt.core/v0alpha1",
@@ -135,6 +141,19 @@ def build_analysis_packet(
     if persist:
         save_last_packet(project_path, packet)
     return packet
+
+
+def _resolve_classifier_rules_path(
+    project: Path,
+    explicit: str | Path | None,
+) -> Path | None:
+    if explicit is not None:
+        return Path(explicit).expanduser().resolve()
+    configured = os.environ.get("AGENT_KPT_CLASSIFIER_RULES")
+    if configured:
+        return Path(configured).expanduser().resolve()
+    default = classifier_rules_path(project)
+    return default if default.exists() else None
 
 
 def ledger_status(*, project: str | Path) -> dict[str, Any]:
@@ -264,14 +283,22 @@ def _error_signals(result: Mapping[str, Any]) -> dict[str, Any]:
         payload = event.get("payload") if isinstance(event.get("payload"), Mapping) else {}
         category = str(payload.get("category") or "unknown")
         subtype = str(payload.get("subtype") or "unknown")
+        outcome = str(payload.get("outcome") or "unknown")
         tool = str(payload.get("tool") or "unknown")
-        key = (category, subtype, tool)
+        rule_id = str(payload.get("rule_id") or "classifier.unknown")
+        rule_scope = str(payload.get("rule_scope") or "common")
+        ruleset_version = str(payload.get("ruleset_version") or "unknown")
+        key = (category, subtype, outcome, tool, rule_id, rule_scope, ruleset_version)
         item = groups.setdefault(
             key,
             {
                 "category": category,
                 "subtype": subtype,
                 "tool": tool,
+                "outcome": outcome,
+                "rule_id": rule_id,
+                "rule_scope": rule_scope,
+                "ruleset_version": ruleset_version,
                 "raw_occurrences": 0,
                 "_sessions": set(),
                 "_lineages": set(),
@@ -293,6 +320,10 @@ def _error_signals(result: Mapping[str, Any]) -> dict[str, Any]:
                 "category": item["category"],
                 "subtype": item["subtype"],
                 "tool": item["tool"],
+                "outcome": item["outcome"],
+                "rule_id": item["rule_id"],
+                "rule_scope": item["rule_scope"],
+                "ruleset_version": item["ruleset_version"],
                 "raw_occurrences": item["raw_occurrences"],
                 "unique_sessions": len(item["_sessions"]),
                 "unique_root_lineages": len(item["_lineages"]),
@@ -306,7 +337,16 @@ def _error_signals(result: Mapping[str, Any]) -> dict[str, Any]:
             item["tool"],
         )
     )
-    return {"total_raw_occurrences": total_raw, "groups": output}
+    by_outcome = Counter(
+        str(group.get("outcome") or "unknown")
+        for group in output
+        for _ in range(int(group.get("raw_occurrences", 0)))
+    )
+    return {
+        "total_raw_occurrences": total_raw,
+        "by_outcome": dict(sorted(by_outcome.items())),
+        "groups": output,
+    }
 
 
 def _summarize_diagnostics(items: Any) -> list[dict[str, Any]]:
@@ -439,6 +479,15 @@ def _evidence(result: Mapping[str, Any]) -> list[dict[str, Any]]:
         if event_type == "error":
             evidence["category"] = str(payload.get("category") or "unknown")
             evidence["subtype"] = str(payload.get("subtype") or "unknown")
+            evidence["outcome"] = str(payload.get("outcome") or "unknown")
+            evidence["rule_id"] = str(payload.get("rule_id") or "classifier.unknown")
+            evidence["rule_scope"] = str(payload.get("rule_scope") or "common")
+            evidence["ruleset_version"] = str(payload.get("ruleset_version") or "unknown")
+            evidence["provider_version"] = (
+                str(payload.get("provider_version"))
+                if payload.get("provider_version")
+                else None
+            )
             evidence["tool"] = str(payload.get("tool") or "unknown")
         out.append(evidence)
     return out
