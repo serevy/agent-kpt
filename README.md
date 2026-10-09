@@ -2,6 +2,8 @@ English | [日本語](README.ja.md)
 
 # agent-kpt
 
+[![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/serevy/agent-kpt?utm_source=oss&utm_medium=github&utm_campaign=serevy%2Fagent-kpt&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)](https://coderabbit.ai)
+
 **Retrospectives for human-agent workflows.**
 
 `agent-kpt` is an experimental continuous-improvement toolkit for people working with coding agents.
